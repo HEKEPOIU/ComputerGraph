@@ -18,16 +18,22 @@ void RotateMatrix(float angle, float x, float y, float z);
 void ScaleMatrix(float x, float y, float z);
 void MousePress(int button, int state, int x, int y);
 
-std::array<float, 3> mouseWorldPos1{10, 10, 0};
-std::array<float, 3> mouseWorldPos2{10, 10, 0};
+std::array<float, 3> mouseViewport1WorldPos1{10, 10, 0};
+std::array<float, 3> mouseViewport1WorldPos2{10, 10, 0};
+
+std::array<float, 3> mouseViewport2WorldPos1{10, 10, 0};
+std::array<float, 3> mouseViewport2WorldPos2{10, 10, 0};
 
 bool mousepoint01Status = false;
+bool mousepoint02Status = false;
 
 GLenum glShadeType = GL_SMOOTH;
 float r = 0.0;
 std::array<float, 3> currentPos{0, 0, 0};
 std::array<float, 3> currentRotate{0, 0, 0};
 std::array<float, 3> currentScale{1, 1, 1};
+
+std::array<int, 2> windowSize{800, 800};
 
 int main(int argc, char **argv) {
   glutInit(&argc, argv);
@@ -63,44 +69,70 @@ void RenderScene(void) {
   gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
   glShadeModel(glShadeType);
   glEnable(GL_DEPTH_TEST);
+  glViewport(0, 0, windowSize[0], windowSize[1]);
+  glBegin(GL_LINES);
+  glVertex2f(0, 100);
+  glVertex2f(0, -100);
+  glEnd();
+
+  // glBegin(GL_LINES);
+  // glColor3f(1, 0, 0);
+  // glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
+  //            mouseViewport1WorldPos1[2]);
+  // glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
+  //            mouseViewport1WorldPos2[2]);
+  // glEnd();
+
+  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
+  // RotateMatrix(currentRotate[0],
+  //              mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
+  //              mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
+  //              0); // x
+  // RotateMatrix(currentRotate[1], 0, 1, 0);
+  // RotateMatrix(currentRotate[2], 0, 0, 1);
+  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
+
+  // glBegin(GL_QUADS);
+  // glColor3f(1, 0, 0);
+  // glVertex3f(10, .1, 0);   // RB
+  // glVertex3f(10, -.1, 0);  // top
+  // glVertex3f(-10, -.1, 0); // LB
+  // glVertex3f(-10, .1, 0);  // top
+  // glEnd();
+
+  // glBegin(GL_QUADS);
+  // glColor3f(0, 1, 0);
+  // glVertex3f(.1, 10, 0);   // RB
+  // glVertex3f(-.1, 10, 0);  // top
+  // glVertex3f(-.1, -10, 0); // LB
+  // glVertex3f(.1, -10, 0);  // top
+  // glEnd();
+
+  // glBegin(GL_QUADS);
+  // glColor3f(0, 0, 1);
+  // glVertex3f(.1, 0, 10);   // RB
+  // glVertex3f(-.1, 0, 10);  // top
+  // glVertex3f(-.1, 0, -10); // LB
+  // glVertex3f(.1, 0, -10);  // top
+  // glEnd();
+  glViewport(0, 0, windowSize[0] / 2, windowSize[1]);
 
   glBegin(GL_LINES);
-  glColor3f(1, 0, 0);
-  glVertex3f(mouseWorldPos1[0], mouseWorldPos1[1], mouseWorldPos1[2]);
-  glVertex3f(mouseWorldPos2[0], mouseWorldPos2[1], mouseWorldPos2[2]);
+  glColor3f(1, 1, 1);
+  glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
+             mouseViewport1WorldPos1[2]);
+  glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
+             mouseViewport1WorldPos2[2]);
   glEnd();
 
-  TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
-  RotateMatrix(currentRotate[0], mouseWorldPos2[0] - mouseWorldPos1[0],
-               mouseWorldPos2[1] - mouseWorldPos1[1],
+  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
+  RotateMatrix(currentRotate[0],
+               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
+               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
                0); // x
-  RotateMatrix(currentRotate[1], 0, 1, 0);
-  RotateMatrix(currentRotate[2], 0, 0, 1);
-  ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
-
-  glBegin(GL_QUADS);
-  glColor3f(1, 0, 0);
-  glVertex3f(10, .1, 0);   // RB
-  glVertex3f(10, -.1, 0);  // top
-  glVertex3f(-10, -.1, 0); // LB
-  glVertex3f(-10, .1, 0);  // top
-  glEnd();
-
-  glBegin(GL_QUADS);
-  glColor3f(0, 1, 0);
-  glVertex3f(.1, 10, 0);   // RB
-  glVertex3f(-.1, 10, 0);  // top
-  glVertex3f(-.1, -10, 0); // LB
-  glVertex3f(.1, -10, 0);  // top
-  glEnd();
-
-  glBegin(GL_QUADS);
-  glColor3f(0, 0, 1);
-  glVertex3f(.1, 0, 10);   // RB
-  glVertex3f(-.1, 0, 10);  // top
-  glVertex3f(-.1, 0, -10); // LB
-  glVertex3f(.1, 0, -10);  // top
-  glEnd();
+  // RotateMatrix(currentRotate[1], 0, 1, 0);
+  // RotateMatrix(currentRotate[2], 0, 0, 1);
+  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
 
   // front
   glBegin(GL_TRIANGLES);
@@ -198,6 +230,124 @@ void RenderScene(void) {
   glVertex3f(0, 5, -5);
 
   glEnd();
+
+  glViewport(windowSize[0] / 2, 0, windowSize[0] / 2, 800);
+  RotateMatrix(-currentRotate[0],
+               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
+               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
+               0); // x
+  // RotateMatrix(currentRotate[1], 0, 1, 0);
+  // RotateMatrix(currentRotate[2], 0, 0, 1);
+  glBegin(GL_LINES);
+  glColor3f(1, 1, 1);
+  glVertex3f(mouseViewport2WorldPos1[0], mouseViewport2WorldPos1[1],
+             mouseViewport2WorldPos1[2]);
+  glVertex3f(mouseViewport2WorldPos2[0], mouseViewport2WorldPos2[1],
+             mouseViewport2WorldPos2[2]);
+  glEnd();
+
+  RotateMatrix(currentRotate[0],
+               mouseViewport2WorldPos2[0] - mouseViewport2WorldPos1[0],
+               mouseViewport2WorldPos2[1] - mouseViewport2WorldPos1[1],
+               0); // x
+
+  // front
+  glBegin(GL_TRIANGLES);
+  glColor3f(1, 1, 1);
+  glVertex3f(5, -5, 0); // RB
+
+  glColor3f(1, 1, 1);
+  glVertex3f(-5, -5, 0); // LB
+
+  glColor3f(1, 1, 1);
+  glVertex3f(0, 5, 0); // top
+  glEnd();
+  // //-------------------------- 1
+
+  glBegin(GL_TRIANGLES);
+  glColor3f(0, 1, 0);
+  glVertex3f(0, 5, 0);
+
+  glColor3f(0, 1, 0);
+  glVertex3f(-5, -5, 0);
+
+  glColor3f(0, 1, 0);
+  glVertex3f(-5, -5, -5);
+  glEnd();
+  // //---------------- 2
+
+  glBegin(GL_TRIANGLES);
+  glColor3f(0, 1, 0);
+  glVertex3f(0, 5, 0);
+  glColor3f(0, 1, 0);
+  glVertex3f(0, 5, -5);
+  glColor3f(0, 1, 0);
+  glVertex3f(-5, -5, -5);
+  glEnd();
+
+  // //------------------------ 3
+  glBegin(GL_TRIANGLES);
+  glColor3f(0, 0, 1);
+
+  glVertex3f(5, -5, 0); // RB
+
+  glColor3f(0, 0, 1);
+
+  glVertex3f(-5, -5, 0); // LB
+
+  glColor3f(0, 0, 1);
+
+  glVertex3f(5, -5, -5);
+  glEnd();
+
+  //------------------------ 4
+  glBegin(GL_TRIANGLES);
+  glColor3f(0, 0, 1);
+  glVertex3f(-5, -5, 0); // RB
+
+  glColor3f(0, 0, 1);
+  glVertex3f(-5, -5, -5);
+
+  glColor3f(0, 0, 1);
+  glVertex3f(5, -5, -5);
+  glEnd();
+  //------------------------ 5
+  glBegin(GL_TRIANGLES);
+  glColor3f(1, 0, 1);
+  glVertex3f(5, -5, 0); // RB
+
+  glColor3f(1, 0, 1);
+  glVertex3f(0, 5, 0); // top
+
+  glColor3f(1, 0, 1);
+  glVertex3f(5, -5, -5);
+  glEnd();
+
+  //------------------------ 6
+  glBegin(GL_TRIANGLES);
+
+  glColor3f(1, 0, 1);
+  glVertex3f(0, 5, 0); // top
+
+  glColor3f(1, 0, 1);
+  glVertex3f(5, -5, -5);
+  glColor3f(1, 0, 1);
+  glVertex3f(0, 5, -5);
+  glEnd();
+
+  glBegin(GL_TRIANGLES);
+
+  glColor3f(0, 1, 0);
+  glVertex3f(5, -5, -5);
+
+  glColor3f(0, 1, 0);
+  glVertex3f(-5, -5, -5);
+
+  glColor3f(1, 0, 0);
+  glVertex3f(0, 5, -5);
+
+  glEnd();
+
   glutSwapBuffers();
 }
 
@@ -223,19 +373,16 @@ void print4mat(GLfloat array[16]) {
 }
 
 void TranslateMatrix(GLfloat x, GLfloat y, GLfloat z) {
-  printf("translate %f %f %f\n", x, y, z);
   GLfloat rotMatrix[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, rotMatrix);
 
   rotMatrix[12] = x;
   rotMatrix[13] = y;
   rotMatrix[14] = z;
-  print4mat(rotMatrix);
   glMultMatrixf(rotMatrix);
 }
 
 void RotateMatrix(float angle, float x, float y, float z) {
-  printf("rotate %f %f %f %f\n", angle, x, y, z);
   GLfloat rotMatrix[16];
   float angleDeg2Rad = angle * (M_PI / 180.0f);
 
@@ -271,18 +418,15 @@ void RotateMatrix(float angle, float x, float y, float z) {
   rotMatrix[13] = 0.0f;
   rotMatrix[14] = 0.0f;
   rotMatrix[15] = 1.0f;
-  print4mat(rotMatrix);
   glMultMatrixf(rotMatrix);
 }
 
 void ScaleMatrix(float x, float y, float z) {
-  printf("scale %f %f %f\n", x, y, z);
   GLfloat scaleMatrix[16]{};
   scaleMatrix[0] = x;
   scaleMatrix[5] = y;
   scaleMatrix[10] = z;
   scaleMatrix[15] = 1.0f;
-  print4mat(scaleMatrix);
   glMultMatrixf(scaleMatrix);
 }
 
@@ -348,18 +492,35 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
 }
 void MousePress(int button, int state, int x, int y) {
   if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-    if (mousepoint01Status == false) {
-      mouseWorldPos1[0] = (2 * ((float)x / 800) - 1) * (10);
-      mouseWorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
-      mouseWorldPos1[2] = 0;
-      mousepoint01Status = true;
-    } else {
-      mouseWorldPos2[0] = (2 * ((float)x / 800) - 1) * (10);
-      mouseWorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
-      mouseWorldPos2[2] = 0;
-      mousepoint01Status = false;
-    }
+    if (x < windowSize[0] / 2) {
 
+      if (mousepoint01Status == false) {
+        mouseViewport1WorldPos1[0] = (2 * ((float)x / 400) - 1) * (10);
+        mouseViewport1WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
+        mouseViewport1WorldPos1[2] = 0;
+        mousepoint01Status = true;
+      } else {
+        mouseViewport1WorldPos2[0] = (2 * ((float)x / 400) - 1) * (10);
+        mouseViewport1WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
+        mouseViewport1WorldPos2[2] = 0;
+        mousepoint01Status = false;
+      }
+    } else {
+
+      if (mousepoint02Status == false) {
+        mouseViewport2WorldPos1[0] =
+            (2 * ((float)((x - 400)) / 400) - 1) * (10);
+        mouseViewport2WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
+        mouseViewport2WorldPos1[2] = 0;
+        mousepoint02Status = true;
+      } else {
+        mouseViewport2WorldPos2[0] =
+            (2 * ((float)((x - 400)) / 400) - 1) * (10);
+        mouseViewport2WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
+        mouseViewport2WorldPos2[2] = 0;
+        mousepoint02Status = false;
+      }
+    }
     // gluInvertMatrix();
     glutPostRedisplay();
   }
