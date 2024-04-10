@@ -17,7 +17,8 @@
 #include "OBJLoader.hpp"
 
 enum class ControlMode {
-  SELECT,
+  CAMERAMOVE,
+  LOOKATPOINTMOVE,
   TRANSLATE,
   ROTATE,
   SCALE,
@@ -28,7 +29,7 @@ enum class CurrentControlAxis {
   Y,
   Z,
 };
-ControlMode current_control_mode = ControlMode::SELECT;
+ControlMode current_control_mode = ControlMode::CAMERAMOVE;
 
 void ChangeSize(int, int);
 void RenderScene(void);
@@ -45,6 +46,8 @@ void RotationModeCallback(int);
 std::array<float, 3> mouseViewport1WorldPos1{10, 10, 0};
 std::array<float, 3> mouseViewport1WorldPos2{10, 10, 0};
 std::array<int, 6> ortho_settings = {-10, 10, -10, 10, -50, 50};
+std::array<double, 3> camera_pos = {0, 0, 10};
+std::array<double, 3> camera_look_at = {0, 0, 0};
 
 bool mousepoint01Status = false;
 
@@ -90,14 +93,18 @@ void ChangeSize(int w, int h) {
   glOrtho(ortho_settings[0], ortho_settings[1], ortho_settings[2],
           ortho_settings[3], ortho_settings[4], ortho_settings[5]);
   glMatrixMode(GL_MODELVIEW);
+  gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_look_at[0],
+            camera_look_at[1], camera_look_at[2], 0, 1, 0);
   glLoadIdentity();
 }
 void RenderScene(void) {
   glClearColor(0, 0, 0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
+
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+  gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_look_at[0],
+            camera_look_at[1], camera_look_at[2], 0, 1, 0);
   glEnable(GL_DEPTH_TEST);
 
   glBegin(GL_LINES);
@@ -113,7 +120,7 @@ void RenderScene(void) {
   glEnd();
 
   glBegin(GL_LINES);
-  glColor3f(0.0f, 1.0f, 0.0f);
+  glColor3f(0.0f, 0.0f, 1.0f);
   glVertex3f(0.0f, 0.0f, 100.0f);
   glVertex3f(0.0f, 0.0f, -100.0f);
   glEnd();
@@ -209,7 +216,7 @@ void print4mat(GLfloat array[16]) {
 void OnKeyBoardPress(unsigned char key, int x, int y) {
   switch (key) {
   case 'q': {
-    current_control_mode = ControlMode::SELECT;
+    current_control_mode = ControlMode::CAMERAMOVE;
     std::cout << "select mode, do nothing Now" << std::endl;
     break;
   }
@@ -226,6 +233,11 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
   case 'r': {
     current_control_mode = ControlMode::SCALE;
     std::cout << "Scale mode" << std::endl;
+    break;
+  }
+  case 'f': {
+    current_control_mode = ControlMode::LOOKATPOINTMOVE;
+    std::cout << "Change LookAt Point" << std::endl;
     break;
   }
   }
@@ -251,17 +263,57 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
 
   float value_to_add = key == 'a' ? -1.0f : 1.0f;
 
+  if (current_display_obj == nullptr) {
+    return;
+  }
+
   auto transform = current_display_obj->get_transform();
 
   if (key == ' ') {
     current_display_obj->set_transform_to_target({0, 0, 0}, ortho_settings);
     transform->set_rotation_by_euler({0, 0, 0});
     transform->set_rotation_by_axis(0, {0, 0, 1});
+    camera_pos = {0, 0, 10};
+    camera_look_at = {0, 0, 0};
     glutPostRedisplay();
     return;
   }
   switch (current_control_mode) {
-  case ControlMode::SELECT: {
+  case ControlMode::CAMERAMOVE: {
+    switch (current_control_axis) {
+    case CurrentControlAxis::X: {
+      std::cout << "x" << std::endl;
+      camera_pos[0] += value_to_add;
+      break;
+    }
+    case CurrentControlAxis::Y: {
+      camera_pos[1] += value_to_add;
+
+      break;
+    }
+    case CurrentControlAxis::Z: {
+      camera_pos[2] += value_to_add;
+      break;
+    }
+    }
+    break;
+  }
+  case ControlMode::LOOKATPOINTMOVE: {
+    switch (current_control_axis) {
+    case CurrentControlAxis::X: {
+      std::cout << "x" << std::endl;
+      camera_look_at[0] += value_to_add;
+      break;
+    }
+    case CurrentControlAxis::Y: {
+      camera_look_at[1] += value_to_add;
+      break;
+    }
+    case CurrentControlAxis::Z: {
+      camera_look_at[2] += value_to_add;
+      break;
+    }
+    }
     break;
   }
   case ControlMode::TRANSLATE: {
