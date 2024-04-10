@@ -18,10 +18,17 @@ set(SRC_FILES
 )
 add_subdirectory(thirdparty/freeglut)
 
+find_package(OpenGL REQUIRED)
+
+if(NOT TARGET OpenGL::GLU)
+    message(FATAL_ERROR "GLU could not be found")
+endif(NOT TARGET OpenGL::GLU)
+
+get_target_property(GLU_IMPORTED_LIBNAME OpenGL::GLU IMPORTED_LIBNAME)
+
 # you need pre-install OpenGL, GLU, please google
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${SRC_DIR}/main.cpp)
-target_link_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OPENGL_glu_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL ${INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL ${OPENGL_INCLUDE_DIR} ${INCLUDE_DIR})
 target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/TestFile")

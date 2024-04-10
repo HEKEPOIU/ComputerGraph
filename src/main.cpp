@@ -1,8 +1,6 @@
 
 #include "DrawableObject.hpp"
 #include "Transform.hpp"
-#include "freeglut_std.h"
-#include <GL/gl.h>
 #include <array>
 #include <filesystem>
 #include <iostream>
@@ -36,9 +34,6 @@ void RenderScene(void);
 void MenuCallback(int);
 void ColorModeMenuCallback(int);
 void OnKeyBoardPress(unsigned char, int, int);
-void TranslateMatrix(GLfloat, GLfloat, GLfloat);
-void RotateMatrix(float angle, float x, float y, float z);
-void ScaleMatrix(float x, float y, float z);
 void MousePress(int button, int state, int x, int y);
 void RenderModeMenuCallback(int);
 void RotationModeCallback(int);
@@ -59,7 +54,7 @@ void LoadObjFileAndRecreateMenu(
 std::unique_ptr<OBJLoader> obj_loader = std::make_unique<OBJLoader>();
 std::vector<std::shared_ptr<DrawableObject>> objs{};
 std::shared_ptr<DrawableObject> current_display_obj{};
-int menu_id = -1;
+int current_menu_id = -1;
 DrawableObject::DrawType current_draw_mode = DrawableObject::DrawType::FACES;
 CurrentControlAxis current_control_axis = CurrentControlAxis::X;
 
@@ -72,7 +67,7 @@ int main(int argc, char **argv) {
   glutInitWindowPosition(600, 80);
   glutCreateWindow("Simple Triangle");
 
-  LoadObjFileAndRecreateMenu(objs, menu_id);
+  LoadObjFileAndRecreateMenu(objs, current_menu_id);
 
   for (auto &obj : objs) {
     obj->set_transform_to_target({0, 0, 0}, ortho_settings);
@@ -144,7 +139,7 @@ void RenderScene(void) {
 
 void MenuCallback(int value) {
   if (value > objs.size()) {
-    LoadObjFileAndRecreateMenu(objs, menu_id);
+    LoadObjFileAndRecreateMenu(objs, current_menu_id);
     for (auto &obj : objs) {
       obj->set_transform_to_target({0, 0, 0}, ortho_settings);
     }
@@ -438,7 +433,9 @@ void LoadObjFileAndRecreateMenu(
     if (std::filesystem::is_regular_file(entry)) {
       std::cout << "file_name: " << entry.path().filename() << std::endl;
       obj_list.push_back(OBJLoader().get_OBJ(entry.path().string()));
-      glutAddMenuEntry(entry.path().filename().c_str(), count);
+      std::string filename = entry.path().filename().string();
+      const char *menuEntry = filename.c_str();
+      glutAddMenuEntry(menuEntry, count);
       count++;
     }
   }
@@ -448,7 +445,7 @@ void LoadObjFileAndRecreateMenu(
 }
 
 std::array<float, 3> generate_random_color() {
-  std::array<float, 3> color;
+  std::array<float, 3> color{};
   color[0] = (float)rand() / RAND_MAX;
   color[1] = (float)rand() / RAND_MAX;
   color[2] = (float)rand() / RAND_MAX;
