@@ -1,22 +1,33 @@
 #include "DrawableObject.hpp"
 #include <GL/gl.h>
-#include <iostream>
-#include <random>
-#include <stdlib.h>
 
-void DrawableObject::draw(GLenum mode, std::array<float, 3> glColor3f) {
+void DrawableObject::draw(DrawType mode) {
+
+  GLenum gl_mode;
   int loop_back = 0;
-  if (mode == GL_LINES) {
+  if (mode == DrawType::LINES) {
     loop_back = 1;
+    gl_mode = GL_LINES;
+  } else if (mode == DrawType::POINTS) {
+    gl_mode = GL_POINTS;
+  } else {
+    gl_mode = _face[0].size() == 3 ? GL_TRIANGLES : GL_POLYGON;
   }
 
-  glBegin(mode);
-  for (const auto &face : _face) {
-    glColor3fv(glColor3f.data());
-    for (int i = 0; i < face.size() + loop_back; i++) {
-      int j = i % face.size();
-      glVertex3fv(&_vertex[face[j] - 1][0]);
+  _transform->Apply_transform();
+  glPointSize(2.0f);
+  glBegin(gl_mode);
+  for (int i = 0; i < _face.size(); i++) {
+
+    glColor3f(_faceColor[i][0], _faceColor[i][1], _faceColor[i][2]);
+
+    for (int k = 0; k < _face[i].size() + loop_back; k++) {
+      int j = k % _face[i].size();
+      glVertex3fv(&_vertex[_face[i][j] - 1][0]);
     }
   }
+  glPointSize(1.0f);
   glEnd();
+
+  _transform->reverse_transform();
 }

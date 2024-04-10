@@ -10,9 +10,11 @@ set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 set(INCLUDE_FILE
     ${INCLUDE_DIR}/OBJLoader.hpp
     ${INCLUDE_DIR}/DrawableObject.hpp
+    ${INCLUDE_DIR}/Transform.hpp
 )
 set(SRC_FILES
     ${SRC_DIR}/DrawableObject.cpp
+    ${SRC_DIR}/Transform.cpp
 )
 add_subdirectory(thirdparty/freeglut)
 

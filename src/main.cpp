@@ -1,8 +1,8 @@
 
+#include "DrawableObject.hpp"
 #include "freeglut_std.h"
 #include <GL/gl.h>
 #include <array>
-#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -15,14 +15,34 @@
 
 #include "OBJLoader.hpp"
 
+enum class ControlMode {
+  SELECT,
+  TRANSLATE,
+  ROTATE,
+  SCALE,
+};
+
+enum class CurrentControlAxis {
+  X,
+  Y,
+  Z,
+};
+ControlMode current_control_mode = ControlMode::SELECT;
+
 void ChangeSize(int, int);
 void RenderScene(void);
 void MenuCallback(int);
+void ColorModeMenuCallback(int);
 void OnKeyBoardPress(unsigned char, int, int);
 void TranslateMatrix(GLfloat, GLfloat, GLfloat);
 void RotateMatrix(float angle, float x, float y, float z);
 void ScaleMatrix(float x, float y, float z);
 void MousePress(int button, int state, int x, int y);
+void RenderModeMenuCallback(int);
+void RotationModeCallback(int);
+
+std::array<float, 3> generate_random_color();
+
 void LoadObjFileAndRecreateMenu(
     std::vector<std::shared_ptr<DrawableObject>> &obj_list, int &menu_id);
 
@@ -30,6 +50,8 @@ std::unique_ptr<OBJLoader> obj_loader = std::make_unique<OBJLoader>();
 std::vector<std::shared_ptr<DrawableObject>> objs{};
 std::shared_ptr<DrawableObject> current_display_obj{};
 int menu_id = -1;
+DrawableObject::DrawType current_draw_mode = DrawableObject::DrawType::FACES;
+CurrentControlAxis current_control_axis = CurrentControlAxis::X;
 
 std::array<int, 2> windowSize{800, 800};
 int main(int argc, char **argv) {
@@ -61,15 +83,33 @@ void ChangeSize(int w, int h) {
 void RenderScene(void) {
   glClearColor(0, 0, 0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
   glEnable(GL_DEPTH_TEST);
+  // glEnable(GL_LIGHTING);
+  // glEnable(GL_LIGHT0);
 
-  RotateMatrix(45, 1, 1, 0);
+  glBegin(GL_LINES);
+  glColor3f(1.0f, 0.0f, 0.0f);
+  glVertex3f(100.0f, 0.0f, 0.0f);
+  glVertex3f(-100.0f, 0.0f, 0.0f);
+  glEnd();
+
+  glBegin(GL_LINES);
+  glColor3f(0.0f, 1.0f, 0.0f);
+  glVertex3f(0.0f, 100.0f, 0.0f);
+  glVertex3f(0.0f, -100.0f, 0.0f);
+  glEnd();
+
+  glBegin(GL_LINES);
+  glColor3f(0.0f, 1.0f, 0.0f);
+  glVertex3f(0.0f, 0.0f, 100.0f);
+  glVertex3f(0.0f, 0.0f, -100.0f);
+  glEnd();
 
   if (current_display_obj != nullptr) {
-    current_display_obj->draw(GL_QUADS, {1, 1, 1});
+    current_display_obj->draw(current_draw_mode);
   }
 
   glutSwapBuffers();
@@ -85,6 +125,54 @@ void MenuCallback(int value) {
   glutPostRedisplay();
 }
 
+void ColorModeMenuCallback(int value) {
+
+  for (int i = 0; i < objs.size(); i++) {
+    std::vector<std::array<float, 3>> face_colors;
+    face_colors.resize(objs[i]->get_face_count());
+
+    for (auto &face_color : face_colors) {
+      std::array<float, 3> color;
+      if (value == 1) {
+        color = generate_random_color();
+      } else {
+        color = {0.5f, 0.5f, 0.5f};
+      }
+      face_color = color;
+    }
+
+    objs[i]->set_face_color(face_colors);
+  }
+
+  glutPostRedisplay();
+}
+
+void RenderModeMenuCallback(int value) {
+  if (value == 1) {
+    current_draw_mode = DrawableObject::DrawType::POINTS;
+  } else if (value == 2) {
+    current_draw_mode = DrawableObject::DrawType::LINES;
+  } else {
+    current_draw_mode = DrawableObject::DrawType::FACES;
+  }
+  glutPostRedisplay();
+}
+
+void RotationModeCallback(int value) {
+  auto transform = current_display_obj->get_transform();
+  switch (value) {
+  case 1: {
+    transform->set_rotation_type(Transform::RotationType::EULER);
+    break;
+  }
+  case 2: {
+    transform->set_rotation_type(Transform::RotationType::ANYAXIS);
+    break;
+  }
+  }
+  glutPostRedisplay();
+}
+
 void print4mat(GLfloat array[16]) {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -94,68 +182,128 @@ void print4mat(GLfloat array[16]) {
   }
 }
 
-void TranslateMatrix(GLfloat x, GLfloat y, GLfloat z) {
-  GLfloat rotMatrix[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, rotMatrix);
-
-  rotMatrix[12] = x;
-  rotMatrix[13] = y;
-  rotMatrix[14] = z;
-  glMultMatrixf(rotMatrix);
-}
-
-void RotateMatrix(float angle, float x, float y, float z) {
-  GLfloat rotMatrix[16];
-  float angleDeg2Rad = angle * (M_PI / 180.0f);
-
-  float cosAngle = cos(angleDeg2Rad);
-  float sinAngle = sin(angleDeg2Rad);
-
-  float len = sqrt(x * x + y * y + z * z);
-
-  if (len != 0) {
-    x /= len;
-    y /= len;
-    z /= len;
+// fuck the switch hell, it's so ugly, i know how to fix it, but I'm too lazy,
+// some one help me to separate to self Input class.
+void OnKeyBoardPress(unsigned char key, int x, int y) {
+  switch (key) {
+  case 'q': {
+    current_control_mode = ControlMode::SELECT;
+    std::cout << "select mode, do nothing Now" << std::endl;
+    break;
+  }
+  case 'w': {
+    current_control_mode = ControlMode::TRANSLATE;
+    std::cout << "Translate mode" << std::endl;
+    break;
+  }
+  case 'e': {
+    current_control_mode = ControlMode::ROTATE;
+    std::cout << "Rotate mode" << std::endl;
+    break;
+  }
+  case 'r': {
+    current_control_mode = ControlMode::SCALE;
+    std::cout << "Scale mode" << std::endl;
+    break;
+  }
   }
 
-  float omc = 1.0f - cosAngle;
+  switch (key) {
+  case 'x': {
+    current_control_axis = CurrentControlAxis::X;
+    break;
+  }
+  case 'y': {
+    current_control_axis = CurrentControlAxis::Y;
+    break;
+  }
+  case 'z': {
+    current_control_axis = CurrentControlAxis::Z;
+    break;
+  }
+  }
 
-  rotMatrix[0] = x * x * omc + cosAngle;
-  rotMatrix[1] = y * x * omc + z * sinAngle;
-  rotMatrix[2] = x * z * omc - y * sinAngle;
-  rotMatrix[3] = 0.0f;
+  if (!(key == 'a' || key == 'd' || key == ' ')) {
+    return;
+  }
 
-  rotMatrix[4] = x * y * omc - z * sinAngle;
-  rotMatrix[5] = y * y * omc + cosAngle;
-  rotMatrix[6] = y * z * omc + x * sinAngle;
-  rotMatrix[7] = 0.0f;
+  float value_to_add = key == 'a' ? -1.0f : 1.0f;
 
-  rotMatrix[8] = x * z * omc + y * sinAngle;
-  rotMatrix[9] = y * z * omc - x * sinAngle;
-  rotMatrix[10] = z * z * omc + cosAngle;
-  rotMatrix[11] = 0.0f;
+  auto transform = current_display_obj->get_transform();
 
-  rotMatrix[12] = 0.0f;
-  rotMatrix[13] = 0.0f;
-  rotMatrix[14] = 0.0f;
-  rotMatrix[15] = 1.0f;
-  glMultMatrixf(rotMatrix);
-}
+  if (key == ' ') {
+    transform->reset_transform();
+  }
+  switch (current_control_mode) {
+  case ControlMode::SELECT: {
+    break;
+  }
+  case ControlMode::TRANSLATE: {
+    switch (current_control_axis) {
+    case CurrentControlAxis::X: {
+      transform->modify_location({value_to_add, 0, 0});
+      break;
+    }
+    case CurrentControlAxis::Y: {
+      transform->modify_location({0, value_to_add, 0});
+      break;
+    }
+    case CurrentControlAxis::Z: {
+      transform->modify_location({0, 0, value_to_add});
+      break;
+    }
+    }
+    break;
+  }
+  case ControlMode::ROTATE: {
+    switch (transform->get_rotation_type()) {
 
-void ScaleMatrix(float x, float y, float z) {
-  GLfloat scaleMatrix[16]{};
-  scaleMatrix[0] = x;
-  scaleMatrix[5] = y;
-  scaleMatrix[10] = z;
-  scaleMatrix[15] = 1.0f;
-  glMultMatrixf(scaleMatrix);
-}
+    case Transform::RotationType::EULER: {
+      switch (current_control_axis) {
+      case CurrentControlAxis::X: {
+        transform->modify_rotation({value_to_add, 0, 0});
+        break;
+      }
+      case CurrentControlAxis::Y: {
+        transform->modify_rotation({0, value_to_add, 0});
+        break;
+      }
+      case CurrentControlAxis::Z: {
+        transform->modify_rotation({0, 0, value_to_add});
+        break;
+      }
+      }
+      break;
+    }
+    case Transform::RotationType::ANYAXIS: {
 
-void OnKeyBoardPress(unsigned char key, int x, int y) {
-  std::cout << key << std::endl;
+      break;
+    }
+    }
+    break;
+  }
+  case ControlMode::SCALE: {
+    value_to_add *= 0.1f;
+    switch (current_control_axis) {
+    case CurrentControlAxis::X: {
+      transform->modify_scale({value_to_add, 0, 0});
+      break;
+    }
+    case CurrentControlAxis::Y: {
+      transform->modify_scale({0, value_to_add, 0});
+      break;
+    }
+    case CurrentControlAxis::Z: {
+      transform->modify_scale({0, 0, value_to_add});
+      break;
+    }
+    }
+    break;
+  }
+  }
   glutPostRedisplay();
 }
+
 void MousePress(int button, int state, int x, int y) {
 
   // gluInvertMatrix();
@@ -168,11 +316,28 @@ void LoadObjFileAndRecreateMenu(
   if (menu_id != -1) {
     glutDestroyMenu(menu_id);
   }
+  obj_list.clear(); // clear old date, make sure no repeated data.
+
+  int submenu_color = glutCreateMenu(ColorModeMenuCallback);
+  glutAddMenuEntry("RandomColor", 1);
+  glutAddMenuEntry("SingleColor", 2);
+
+  int submenu_renderMode = glutCreateMenu(RenderModeMenuCallback);
+  glutAddMenuEntry("Points", 1);
+  glutAddMenuEntry("Lines", 2);
+  glutAddMenuEntry("Faces", 3);
+
+  int submenu_rotation_mode = glutCreateMenu(RotationModeCallback);
+  glutAddMenuEntry("Euler", 1);
+  glutAddMenuEntry("Any Axis", 2);
 
   menu_id = glutCreateMenu(MenuCallback); // GLUT Not Support remove menu
                                           // item, so we need reCreate one.
 
-  obj_list.clear(); // clear old date, make sure no repeated data.
+  glutAddSubMenu("ColorMode", submenu_color);
+  glutAddSubMenu("RenderMode", submenu_renderMode);
+  glutAddSubMenu("RotationMode", submenu_rotation_mode);
+
   int count = 1;
   for (const auto &entry : std::filesystem::directory_iterator(RESOURCE_DIR)) {
     if (std::filesystem::is_regular_file(entry)) {
@@ -183,5 +348,14 @@ void LoadObjFileAndRecreateMenu(
     }
   }
   glutAddMenuEntry("Reload Path", count);
+
   glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
+std::array<float, 3> generate_random_color() {
+  std::array<float, 3> color;
+  color[0] = (float)rand() / RAND_MAX;
+  color[1] = (float)rand() / RAND_MAX;
+  color[2] = (float)rand() / RAND_MAX;
+  return color;
 }
