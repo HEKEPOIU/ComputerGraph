@@ -18,19 +18,20 @@ void DrawableObject::draw(DrawType mode) {
   }
 
   _transform->Apply_transform();
-  glPointSize(2.0f);
-  glBegin(gl_mode);
+  glPointSize(5.0f);
   for (int i = 0; i < _faces.size(); i++) {
 
+    glBegin(gl_mode);
     glColor3f(_faceColor[i][0], _faceColor[i][1], _faceColor[i][2]);
 
     for (int k = 0; k < _faces[i].size() + loop_back; k++) {
       int j = k % _faces[i].size();
+      std::cout << j << std::endl;
       glVertex3fv(&_vertex[_faces[i][j] - 1][0]);
     }
+    glEnd();
   }
   glPointSize(1.0f);
-  glEnd();
 
   _transform->reverse_transform();
 }
