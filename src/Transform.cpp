@@ -69,9 +69,16 @@ void Transform::set_rotation_by_euler(const std::array<float, 3> &rotation) {
   _rotation = rotation;
 }
 
+void Transform::set_rotation_by_axis(float angle,
+                                     const std::array<float, 3> &axis) {
+  _current_rotation_angle = angle;
+  _current_rotation_axis = axis;
+}
+
 void Transform::set_scale(const std::array<float, 3> &scale) { _scale = scale; }
 
 void Transform::Apply_transform() {
+
   glMultMatrixf(
       get_translate_matrix(_location[0], _location[1], _location[2]).data());
   if (_rotation_type == RotationType::EULER) {

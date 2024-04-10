@@ -53,24 +53,6 @@ public:
       }
     }
 
-    // // 输出读取到的顶点坐标
-    // std::cout << "Vertex coordinates:" << std::endl;
-    // for (const auto &v : vertex) {
-    //   for (const auto &coord : v) {
-    //     std::cout << coord << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
-
-    // // 输出读取到的面的顶点索引
-    // std::cout << "Faces:" << std::endl;
-    // for (const auto &f : faces) {
-    //   for (const auto &index : f) {
-    //     std::cout << index << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
-
     _cache[path] = std::make_shared<DrawableObject>(vertex, faces);
     return _cache[path];
   }

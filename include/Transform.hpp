@@ -28,6 +28,11 @@ public:
     set_location(new_location);
   }
 
+  void modify_rotation_by_axis(float angle, const std::array<float, 3> &axis) {
+    float new_angle = _current_rotation_angle;
+    new_angle += angle;
+    set_rotation_by_axis(new_angle, axis);
+  }
   void modify_rotation(const std::array<float, 3> &axis) {
     std::array<float, 3> new_rotation = get_rotation();
     new_rotation[0] += axis[0];

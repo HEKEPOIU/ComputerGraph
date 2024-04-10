@@ -1,5 +1,6 @@
 
 #include "DrawableObject.hpp"
+#include "Transform.hpp"
 #include "freeglut_std.h"
 #include <GL/gl.h>
 #include <array>
@@ -41,6 +42,12 @@ void MousePress(int button, int state, int x, int y);
 void RenderModeMenuCallback(int);
 void RotationModeCallback(int);
 
+std::array<float, 3> mouseViewport1WorldPos1{10, 10, 0};
+std::array<float, 3> mouseViewport1WorldPos2{10, 10, 0};
+std::array<int, 6> ortho_settings = {-10, 10, -10, 10, -50, 50};
+
+bool mousepoint01Status = false;
+
 std::array<float, 3> generate_random_color();
 
 void LoadObjFileAndRecreateMenu(
@@ -64,6 +71,10 @@ int main(int argc, char **argv) {
 
   LoadObjFileAndRecreateMenu(objs, menu_id);
 
+  for (auto &obj : objs) {
+    obj->set_transform_to_target({0, 0, 0}, ortho_settings);
+  }
+
   glutReshapeFunc(ChangeSize);
   glutKeyboardFunc(OnKeyBoardPress);
   glutMouseFunc(MousePress);
@@ -76,7 +87,8 @@ void ChangeSize(int w, int h) {
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-10, 10, -10, 10, -50, 50);
+  glOrtho(ortho_settings[0], ortho_settings[1], ortho_settings[2],
+          ortho_settings[3], ortho_settings[4], ortho_settings[5]);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 }
@@ -87,8 +99,6 @@ void RenderScene(void) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glEnable(GL_DEPTH_TEST);
-  // glEnable(GL_LIGHTING);
-  // glEnable(GL_LIGHT0);
 
   glBegin(GL_LINES);
   glColor3f(1.0f, 0.0f, 0.0f);
@@ -109,6 +119,15 @@ void RenderScene(void) {
   glEnd();
 
   if (current_display_obj != nullptr) {
+    if (current_display_obj->get_transform()->get_rotation_type() ==
+        Transform::RotationType::ANYAXIS) {
+      glBegin(GL_LINES);
+      glColor3f(1.0f, 1.0f, 1.0f);
+      glVertex3fv(mouseViewport1WorldPos1.data());
+      glVertex3fv(mouseViewport1WorldPos2.data());
+      glEnd();
+    }
+
     current_display_obj->draw(current_draw_mode);
   }
 
@@ -118,6 +137,9 @@ void RenderScene(void) {
 void MenuCallback(int value) {
   if (value > objs.size()) {
     LoadObjFileAndRecreateMenu(objs, menu_id);
+    for (auto &obj : objs) {
+      obj->set_transform_to_target({0, 0, 0}, ortho_settings);
+    }
     return;
   }
   current_display_obj = objs[value - 1];
@@ -232,7 +254,11 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
   auto transform = current_display_obj->get_transform();
 
   if (key == ' ') {
-    transform->reset_transform();
+    current_display_obj->set_transform_to_target({0, 0, 0}, ortho_settings);
+    transform->set_rotation_by_euler({0, 0, 0});
+    transform->set_rotation_by_axis(0, {0, 0, 1});
+    glutPostRedisplay();
+    return;
   }
   switch (current_control_mode) {
   case ControlMode::SELECT: {
@@ -276,14 +302,18 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
       break;
     }
     case Transform::RotationType::ANYAXIS: {
-
+      transform->modify_rotation_by_axis(
+          value_to_add,
+          {mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
+           mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
+           mouseViewport1WorldPos2[2] - mouseViewport1WorldPos1[2]});
       break;
     }
     }
     break;
   }
   case ControlMode::SCALE: {
-    value_to_add *= 0.1f;
+    value_to_add *= 0.1f * current_display_obj->get_proper_scale();
     switch (current_control_axis) {
     case CurrentControlAxis::X: {
       transform->modify_scale({value_to_add, 0, 0});
@@ -305,7 +335,19 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
 }
 
 void MousePress(int button, int state, int x, int y) {
-
+  if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+    if (mousepoint01Status == false) {
+      mouseViewport1WorldPos1[0] = (2 * ((float)x / 800) - 1) * (10);
+      mouseViewport1WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
+      mouseViewport1WorldPos1[2] = 0;
+      mousepoint01Status = true;
+    } else {
+      mouseViewport1WorldPos2[0] = (2 * ((float)x / 800) - 1) * (10);
+      mouseViewport1WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
+      mouseViewport1WorldPos2[2] = 0;
+      mousepoint01Status = false;
+    }
+  }
   // gluInvertMatrix();
   glutPostRedisplay();
 }
