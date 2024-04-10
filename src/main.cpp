@@ -103,6 +103,7 @@ void RenderScene(void) {
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+  // TODO: we should calculate the up vector, but now I am lazy to do it.
   gluLookAt(camera_pos[0], camera_pos[1], camera_pos[2], camera_look_at[0],
             camera_look_at[1], camera_look_at[2], 0, 1, 0);
   glEnable(GL_DEPTH_TEST);
