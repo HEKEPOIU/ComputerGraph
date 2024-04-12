@@ -1,4 +1,3 @@
-
 #include "DrawableObject.hpp"
 #include "Transform.hpp"
 #include <array>
@@ -10,6 +9,7 @@
 
 /*** freeglut***/
 #include <freeglut.h>
+#include <freeglut_std.h>
 #include <vector>
 
 #include "OBJLoader.hpp"
@@ -432,7 +432,8 @@ void LoadObjFileAndRecreateMenu(
   for (const auto &entry : std::filesystem::directory_iterator(RESOURCE_DIR)) {
     if (std::filesystem::is_regular_file(entry)) {
       std::cout << "file_name: " << entry.path().filename() << std::endl;
-      obj_list.push_back(OBJLoader().get_OBJ(entry.path().string()));
+      const std::string &filePath = entry.path().string();
+      obj_list.push_back(obj_loader->get_OBJ(filePath));
       std::string filename = entry.path().filename().string();
       const char *menuEntry = filename.c_str();
       glutAddMenuEntry(menuEntry, count);

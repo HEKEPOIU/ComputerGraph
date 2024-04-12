@@ -1,6 +1,8 @@
 #include "Transform.hpp"
-#include <GL/gl.h>
 #include <cmath>
+#include <freeglut.h>
+#include <freeglut_std.h>
+
 
 std::array<GLfloat, 16> Transform::get_rotate_matrix(float angle, float x,
                                                      float y, float z) {

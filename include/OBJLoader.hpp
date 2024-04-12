@@ -29,6 +29,9 @@ public:
     std::string line{};
 
     while (getline(obj_file, line)) {
+      if (line.empty()) {
+        continue;
+      }
       switch (line.front()) {
       case 'v': {
         float x, y, z;
@@ -53,12 +56,12 @@ public:
       }
     }
 
-    _cache[path] = std::make_shared<DrawableObject>(vertex, faces);
+    _cache.insert({ path,std::make_shared<DrawableObject>(vertex, faces) });
     return _cache[path];
   }
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<DrawableObject>> _cache{};
+  std::unordered_map<std::string, std::shared_ptr<DrawableObject>> _cache;
 };
 
 #endif

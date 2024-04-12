@@ -1,11 +1,12 @@
-#ifndef DrawableObject_hpp
-#define DrawableObject_hpp
+#ifndef DRAWABLEOBJECT_HPP
+#define DRAWABLEOBJECT_HPP
+
+#include <array>
 
 #include "Transform.hpp"
-#include <GL/gl.h>
-#include <array>
 #include <memory>
 #include <vector>
+
 class DrawableObject {
 
 public:

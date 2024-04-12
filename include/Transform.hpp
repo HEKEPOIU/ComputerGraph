@@ -1,8 +1,13 @@
 #ifndef TRANSFORM_HPP
 #define TRANSFORM_HPP
 
-#include <GL/gl.h>
 #include <array>
+#include <freeglut.h>
+#include <freeglut_std.h>
+
+
+#define M_PI 3.14159265358979323846
+
 class Transform {
 
 public:

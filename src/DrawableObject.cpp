@@ -1,8 +1,10 @@
 #include "DrawableObject.hpp"
-#include <GL/gl.h>
 #include <algorithm>
 #include <array>
+#include <freeglut.h>
+#include <freeglut_std.h>
 #include <iostream>
+
 
 void DrawableObject::draw(DrawType mode) {
 
@@ -26,7 +28,6 @@ void DrawableObject::draw(DrawType mode) {
 
     for (int k = 0; k < _faces[i].size() + loop_back; k++) {
       int j = k % _faces[i].size();
-      std::cout << j << std::endl;
       glVertex3fv(&_vertex[_faces[i][j] - 1][0]);
     }
     glEnd();
