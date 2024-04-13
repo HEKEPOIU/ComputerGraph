@@ -3,8 +3,6 @@
 #include <array>
 #include <freeglut.h>
 #include <freeglut_std.h>
-#include <iostream>
-
 
 void DrawableObject::draw(DrawType mode) {
 

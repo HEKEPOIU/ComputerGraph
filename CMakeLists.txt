@@ -18,14 +18,11 @@ set(SRC_FILES
     ${SRC_DIR}/Transform.cpp
 )
 
-
 add_executable(${PROJECT_NAME}
     ${SRC_DIR}/main.cpp
     ${INCLUDE_FILES}
     ${SRC_FILES}
 )
-
-message(STATUS "${INCLUDE_DIR}")
 
 target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
