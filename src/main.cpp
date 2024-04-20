@@ -213,7 +213,7 @@ void OnKeyBoardPress(unsigned char key, int x, int y) {
   switch (key) {
   case 'q': {
     current_control_mode = ControlMode::CAMERAMOVE;
-    std::cout << "select mode, do nothing Now" << std::endl;
+    std::cout << "Camera¡@Move Mode" << std::endl;
     break;
   }
   case 'w': {
