@@ -8,6 +8,7 @@
 #include <stdio.h>
 /*** freeglut***/
 #include <freeglut.h>
+#include <vector>
 
 void ChangeSize(int, int);
 void RenderScene(void);
@@ -17,23 +18,16 @@ void TranslateMatrix(GLfloat, GLfloat, GLfloat);
 void RotateMatrix(float angle, float x, float y, float z);
 void ScaleMatrix(float x, float y, float z);
 void MousePress(int button, int state, int x, int y);
-
-std::array<float, 3> mouseViewport1WorldPos1{10, 10, 0};
-std::array<float, 3> mouseViewport1WorldPos2{10, 10, 0};
-
-std::array<float, 3> mouseViewport2WorldPos1{10, 10, 0};
-std::array<float, 3> mouseViewport2WorldPos2{10, 10, 0};
-
-bool mousepoint01Status = false;
-bool mousepoint02Status = false;
-
-GLenum glShadeType = GL_SMOOTH;
-float r = 0.0;
-std::array<float, 3> currentPos{0, 0, 0};
-std::array<float, 3> currentRotate{0, 0, 0};
-std::array<float, 3> currentScale{1, 1, 1};
+void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int x,
+                         int y);
+void DrawOutLine(int x, int y);
+void DrawGrid(std::vector<std::vector<int>> &grid_point);
 
 std::array<int, 2> windowSize{800, 800};
+std::vector<std::vector<int>> _gridPoint{};
+std::vector<bool> _gridDraw{};
+int size_x = 21; // -10 ~ 10
+int size_y = 21;
 
 int main(int argc, char **argv) {
   glutInit(&argc, argv);
@@ -42,8 +36,10 @@ int main(int argc, char **argv) {
   glutInitWindowPosition(600, 80);
   glutCreateWindow("Simple Triangle");
   glutCreateMenu(MenuCallback);
-  glutAddMenuEntry("GL_SMOOTH", 1);
-  glutAddMenuEntry("GL_FLAT", 2);
+  glutAddMenuEntry("10", 1);
+  glutAddMenuEntry("15", 2);
+  glutAddMenuEntry("20", 3);
+  ChangeGridPointSize(_gridPoint, 21, 21);
   glutAttachMenu(GLUT_RIGHT_BUTTON);
   glutReshapeFunc(ChangeSize);
   glutKeyboardFunc(OnKeyBoardPress);
@@ -57,7 +53,7 @@ void ChangeSize(int w, int h) {
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-10, 10, -10, 10, -50, 50);
+  glOrtho(-400, 400, -400, 400, -50, 50);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 }
@@ -67,297 +63,25 @@ void RenderScene(void) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
-  glShadeModel(glShadeType);
   glEnable(GL_DEPTH_TEST);
   glViewport(0, 0, windowSize[0], windowSize[1]);
-  glBegin(GL_LINES);
-  glVertex2f(0, 100);
-  glVertex2f(0, -100);
-  glEnd();
 
-  // glBegin(GL_LINES);
-  // glColor3f(1, 0, 0);
-  // glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
-  //            mouseViewport1WorldPos1[2]);
-  // glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
-  //            mouseViewport1WorldPos2[2]);
-  // glEnd();
-
-  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
-  // RotateMatrix(currentRotate[0],
-  //              mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-  //              mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-  //              0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
-
-  // glBegin(GL_QUADS);
-  // glColor3f(1, 0, 0);
-  // glVertex3f(10, .1, 0);   // RB
-  // glVertex3f(10, -.1, 0);  // top
-  // glVertex3f(-10, -.1, 0); // LB
-  // glVertex3f(-10, .1, 0);  // top
-  // glEnd();
-
-  // glBegin(GL_QUADS);
-  // glColor3f(0, 1, 0);
-  // glVertex3f(.1, 10, 0);   // RB
-  // glVertex3f(-.1, 10, 0);  // top
-  // glVertex3f(-.1, -10, 0); // LB
-  // glVertex3f(.1, -10, 0);  // top
-  // glEnd();
-
-  // glBegin(GL_QUADS);
-  // glColor3f(0, 0, 1);
-  // glVertex3f(.1, 0, 10);   // RB
-  // glVertex3f(-.1, 0, 10);  // top
-  // glVertex3f(-.1, 0, -10); // LB
-  // glVertex3f(.1, 0, -10);  // top
-  // glEnd();
-  glViewport(0, 0, windowSize[0] / 2, windowSize[1]);
-
-  glBegin(GL_LINES);
-  glColor3f(1, 1, 1);
-  glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
-             mouseViewport1WorldPos1[2]);
-  glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
-             mouseViewport1WorldPos2[2]);
-  glEnd();
-
-  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
-  RotateMatrix(currentRotate[0],
-               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-               0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
-
-  // front
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 1, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(0, 5, 0); // top
-  glEnd();
-  // //-------------------------- 1
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-  // //---------------- 2
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, -5);
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-
-  // //------------------------ 3
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 4
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(0, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-  //------------------------ 5
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 6
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, -5);
-  glEnd();
-
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(5, -5, -5);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(1, 0, 0);
-  glVertex3f(0, 5, -5);
-
-  glEnd();
-
-  glViewport(windowSize[0] / 2, 0, windowSize[0] / 2, 800);
-  RotateMatrix(-currentRotate[0],
-               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-               0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  glBegin(GL_LINES);
-  glColor3f(1, 1, 1);
-  glVertex3f(mouseViewport2WorldPos1[0], mouseViewport2WorldPos1[1],
-             mouseViewport2WorldPos1[2]);
-  glVertex3f(mouseViewport2WorldPos2[0], mouseViewport2WorldPos2[1],
-             mouseViewport2WorldPos2[2]);
-  glEnd();
-
-  RotateMatrix(currentRotate[0],
-               mouseViewport2WorldPos2[0] - mouseViewport2WorldPos1[0],
-               mouseViewport2WorldPos2[1] - mouseViewport2WorldPos1[1],
-               0); // x
-
-  // front
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 1, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(0, 5, 0); // top
-  glEnd();
-  // //-------------------------- 1
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-  // //---------------- 2
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, -5);
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-
-  // //------------------------ 3
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 4
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(0, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-  //------------------------ 5
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 6
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, -5);
-  glEnd();
-
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(5, -5, -5);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(1, 0, 0);
-  glVertex3f(0, 5, -5);
-
-  glEnd();
+  DrawGrid(_gridPoint);
 
   glutSwapBuffers();
 }
 
 void MenuCallback(int value) {
+  // TODO: change grid size.
   switch (value) {
   case 1:
-    glShadeType = GL_SMOOTH;
+    ChangeGridPointSize(_gridPoint, 21, 21);
     break;
   case 2:
-    glShadeType = GL_FLAT;
+    ChangeGridPointSize(_gridPoint, 31, 31);
+    break;
+  case 3:
+    ChangeGridPointSize(_gridPoint, 41, 41);
     break;
   }
   glutPostRedisplay();
@@ -430,98 +154,99 @@ void ScaleMatrix(float x, float y, float z) {
   glMultMatrixf(scaleMatrix);
 }
 
-void OnKeyBoardPress(unsigned char key, int x, int y) {
-  std::cout << key << std::endl;
-
-  switch (key) {
-  case 'r':
-    currentPos[0] = 0;
-    currentPos[1] = 0;
-    currentPos[2] = 0;
-    currentRotate[0] = 0;
-    currentRotate[1] = 0;
-    currentRotate[2] = 0;
-    break;
-  case 'd':
-    currentPos[0] += 1;
-    break;
-  case 'a':
-    currentPos[0] -= 1;
-    break;
-  case 'j':
-    currentPos[1] += 1;
-    break;
-  case 'l':
-    currentPos[1] -= 1;
-    break;
-  case 'i':
-    currentPos[2] += 1;
-    break;
-  case 'p':
-    currentPos[2] -= 1;
-    break;
-  case 'x':
-    currentRotate[0] += 1;
-    break;
-  case 'y':
-    currentRotate[1] += 1;
-    break;
-  case 'z':
-    currentRotate[2] += 1;
-    break;
-  case '1':
-    currentScale[0] += 0.1;
-    break;
-  case '2':
-    currentScale[1] += 0.1;
-    break;
-  case '3':
-    currentScale[2] += 0.1;
-    break;
-  case '4':
-    currentScale[0] -= 0.1;
-    break;
-  case '5':
-    currentScale[1] -= 0.1;
-    break;
-  case '6':
-    currentScale[2] -= 0.1;
-    break;
+void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int totalX,
+                         int totalY) {
+  size_x = totalX;
+  size_y = totalY;
+  grid_point.clear();
+  _gridDraw.clear();
+  int halfX = totalX / 2;
+  int halfY = totalY / 2;
+  for (int x = -halfX; x <= halfX; x++) {
+    for (int y = -halfY; y <= halfY; y++) {
+      grid_point.push_back({x, y});
+      _gridDraw.push_back(false);
+    }
   }
-  glutPostRedisplay();
+}
+
+void DrawOutLine(int x, int y) {
+  int w = windowSize[0];
+  int h = windowSize[1];
+  int sizeX = w / size_x;
+  int sizeY = h / size_y;
+  glColor3f(1.0f, 1.0f, 1.0f);
+
+  glBegin(GL_LINES);
+
+  glVertex3f(x - sizeX / 2, y + sizeY / 2, 0);
+  glVertex3f(x - sizeX / 2, y - sizeY / 2, 0);
+
+  glVertex3f(x - sizeX / 2, y - sizeY / 2, 0);
+  glVertex3f(x + sizeX / 2, y - sizeY / 2, 0);
+
+  glVertex3f(x + sizeX / 2, y - sizeY / 2, 0);
+  glVertex3f(x + sizeX / 2, y + sizeY / 2, 0);
+
+  glVertex3f(x + sizeX / 2, y + sizeY / 2, 0);
+  glVertex3f(x - sizeX / 2, y + sizeY / 2, 0);
+
+  glEnd();
+}
+
+void DrawFillCell(int x, int y) {
+  int w = windowSize[0];
+  int h = windowSize[1];
+  int sizeX = w / size_x;
+  int sizeY = h / size_y;
+
+  glColor3f(1.0f, 1.0f, 1.0f);
+  glBegin(GL_QUADS);
+
+  glVertex3f(x - sizeX / 2, y + sizeY / 2, 0);
+  glVertex3f(x - sizeX / 2, y - sizeY / 2, 0);
+
+  glVertex3f(x + sizeX / 2, y - sizeY / 2, 0);
+
+  glVertex3f(x + sizeX / 2, y + sizeY / 2, 0);
+
+  glEnd();
+}
+
+void DrawGrid(std::vector<std::vector<int>> &grid_point) {
+  int spaceingX = windowSize[0] / (size_x);
+  int spaceingY = windowSize[1] / (size_y);
+  for (int i = 0; i < grid_point.size(); i++) {
+    if (_gridDraw[i] == true) {
+      DrawFillCell(grid_point[i][0] * spaceingX, grid_point[i][1] * spaceingY);
+    } else {
+      DrawOutLine(grid_point[i][0] * spaceingX, grid_point[i][1] * spaceingY);
+    }
+  }
+}
+
+void OnKeyBoardPress(unsigned char key, int x, int y) { glutPostRedisplay(); }
+void ScrenPosToGridPoint(float x, float y, int &gridX, int &gridY) {
+  int w = windowSize[0];
+  int h = windowSize[1];
+  int sizeX = w / (size_x + 1);
+  int sizeY = h / (size_y + 1);
+  gridX = x / sizeX;
+  gridY = y / sizeY;
+  std::cout << gridX << " " << gridY << std::endl;
 }
 void MousePress(int button, int state, int x, int y) {
-  if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-    if (x < windowSize[0] / 2) {
+  if (state == GLUT_DOWN) {
+    float mousePosX = (2 * ((float)x / 800) - 1) * (400);
+    float mousePosY = (-2 * ((float)y / 800) + 1) * (400);
+    int gridX = 0;
+    int gridY = 0;
+    ScrenPosToGridPoint(mousePosX, mousePosY, gridX, gridY);
+    gridX += size_x / 2;
+    gridY += size_y / 2;
+    _gridDraw[gridY + gridX * size_y] = !_gridDraw[gridY + gridX * size_y];
 
-      if (mousepoint01Status == false) {
-        mouseViewport1WorldPos1[0] = (2 * ((float)x / 400) - 1) * (10);
-        mouseViewport1WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport1WorldPos1[2] = 0;
-        mousepoint01Status = true;
-      } else {
-        mouseViewport1WorldPos2[0] = (2 * ((float)x / 400) - 1) * (10);
-        mouseViewport1WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport1WorldPos2[2] = 0;
-        mousepoint01Status = false;
-      }
-    } else {
-
-      if (mousepoint02Status == false) {
-        mouseViewport2WorldPos1[0] =
-            (2 * ((float)((x - 400)) / 400) - 1) * (10);
-        mouseViewport2WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport2WorldPos1[2] = 0;
-        mousepoint02Status = true;
-      } else {
-        mouseViewport2WorldPos2[0] =
-            (2 * ((float)((x - 400)) / 400) - 1) * (10);
-        mouseViewport2WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport2WorldPos2[2] = 0;
-        mousepoint02Status = false;
-      }
-    }
-    // gluInvertMatrix();
     glutPostRedisplay();
   }
+  // gluInvertMatrix();
 }
