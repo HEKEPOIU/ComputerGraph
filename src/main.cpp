@@ -214,19 +214,19 @@ void DrawFillCell(int x, int y) {
 }
 
 void DrawGrid(std::vector<std::vector<int>> &grid_point) {
-  int spaceingX = windowSize[0] / (size_x);
-  int spaceingY = windowSize[1] / (size_y);
+  int spacingX = windowSize[0] / (size_x);
+  int spacingY = windowSize[1] / (size_y);
   for (int i = 0; i < grid_point.size(); i++) {
     if (_gridDraw[i] == true) {
-      DrawFillCell(grid_point[i][0] * spaceingX, grid_point[i][1] * spaceingY);
+      DrawFillCell(grid_point[i][0] * spacingX, grid_point[i][1] * spacingY);
     } else {
-      DrawOutLine(grid_point[i][0] * spaceingX, grid_point[i][1] * spaceingY);
+      DrawOutLine(grid_point[i][0] * spacingX, grid_point[i][1] * spacingY);
     }
   }
 }
 
 void OnKeyBoardPress(unsigned char key, int x, int y) { glutPostRedisplay(); }
-void ScrenPosToGridPoint(float x, float y, int &gridX, int &gridY) {
+void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY) {
   int w = windowSize[0];
   int h = windowSize[1];
   int sizeX = w / (size_x);
@@ -240,7 +240,7 @@ void MousePress(int button, int state, int x, int y) {
     float mousePosY = (-2 * ((float)y / 800) + 1) * (400);
     int gridX = 0;
     int gridY = 0;
-    ScrenPosToGridPoint(mousePosX, mousePosY, gridX, gridY);
+    ScreenPosToGridPoint(mousePosX, mousePosY, gridX, gridY);
     gridX += size_x / 2;
     gridY += size_y / 2;
     _gridDraw[gridY + gridX * size_y] = !_gridDraw[gridY + gridX * size_y];
