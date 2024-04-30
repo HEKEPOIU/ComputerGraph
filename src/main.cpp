@@ -6,6 +6,7 @@
 /*** freeglut***/
 #include "freeglut_std.h"
 #include <freeglut.h>
+#include <utility>
 #include <vector>
 
 #define PI 3.141592653589793
@@ -22,10 +23,14 @@ void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int x,
                          int y);
 void DrawOutLine(int x, int y);
 void DrawGrid(std::vector<std::vector<int>> &grid_point);
+void DrawGridLine(int x0, int y0, int x1, int y1);
+void GridSpaceToGridVectorSpace(int gridX, int gridY, int &x, int &y);
+void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY);
 
 std::array<int, 2> windowSize{800, 800};
 std::vector<std::vector<int>> _gridPoint{};
-std::vector<bool> _gridDraw{};
+std::vector<std::pair<bool, std::array<float, 3>>> _gridDraw{};
+std::vector<std::array<float, 2>> mousePoints;
 int size_x = 21; // -10 ~ 10
 int size_y = 21;
 
@@ -65,6 +70,28 @@ void RenderScene(void) {
   gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
   glEnable(GL_DEPTH_TEST);
   glViewport(0, 0, windowSize[0], windowSize[1]);
+
+  if (mousePoints.size() >= 2) {
+    glColor3f(1.0f, 0.f, 0.f);
+    glBegin(GL_LINES);
+    for (int i = 0; i < mousePoints.size() - 1; i++) {
+      glVertex3f(mousePoints[i][0], mousePoints[i][1], 0);
+      glVertex3f(mousePoints[(i + 1) % mousePoints.size()][0],
+                 mousePoints[(i + 1) % mousePoints.size()][1], 0);
+
+      int gridX0, gridY0, gridX1, gridY1;
+      ScreenPosToGridPoint(mousePoints[i][0], mousePoints[i][1], gridX0,
+                           gridY0);
+      ScreenPosToGridPoint(mousePoints[(i + 1) % mousePoints.size()][0],
+                           mousePoints[(i + 1) % mousePoints.size()][1], gridX1,
+                           gridY1);
+      GridSpaceToGridVectorSpace(gridX0, gridY0, gridX0, gridY0);
+      GridSpaceToGridVectorSpace(gridX1, gridY1, gridX1, gridY1);
+
+      DrawGridLine(gridX0, gridY0, gridX1, gridY1);
+    }
+    glEnd();
+  }
 
   DrawGrid(_gridPoint);
 
@@ -165,7 +192,7 @@ void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int totalX,
   for (int x = -halfX; x <= halfX; x++) {
     for (int y = -halfY; y <= halfY; y++) {
       grid_point.push_back({x, y});
-      _gridDraw.push_back(false);
+      _gridDraw.push_back({false, {0.0f, 0.0f, 0.0f}});
     }
   }
 }
@@ -194,13 +221,13 @@ void DrawOutLine(int x, int y) {
   glEnd();
 }
 
-void DrawFillCell(int x, int y) {
+void DrawFillCell(int x, int y, std::array<float, 3> color) {
   int w = windowSize[0];
   int h = windowSize[1];
   int sizeX = w / size_x;
   int sizeY = h / size_y;
 
-  glColor3f(1.0f, 1.0f, 1.0f);
+  glColor3fv(color.data());
   glBegin(GL_QUADS);
 
   glVertex3f(x - sizeX / 2, y + sizeY / 2, 0);
@@ -217,15 +244,25 @@ void DrawGrid(std::vector<std::vector<int>> &grid_point) {
   int spacingX = windowSize[0] / (size_x);
   int spacingY = windowSize[1] / (size_y);
   for (int i = 0; i < grid_point.size(); i++) {
-    if (_gridDraw[i] == true) {
-      DrawFillCell(grid_point[i][0] * spacingX, grid_point[i][1] * spacingY);
+    if (_gridDraw[i].first == true) {
+      DrawFillCell(grid_point[i][0] * spacingX, grid_point[i][1] * spacingY,
+                   _gridDraw[i].second);
     } else {
       DrawOutLine(grid_point[i][0] * spacingX, grid_point[i][1] * spacingY);
     }
   }
 }
 
-void OnKeyBoardPress(unsigned char key, int x, int y) { glutPostRedisplay(); }
+void OnKeyBoardPress(unsigned char key, int x, int y) {
+  switch (key) {
+  case ' ':
+    mousePoints.clear();
+    break;
+  default:
+    break;
+  }
+  glutPostRedisplay();
+}
 void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY) {
   int w = windowSize[0];
   int h = windowSize[1];
@@ -238,14 +275,102 @@ void MousePress(int button, int state, int x, int y) {
   if (state == GLUT_DOWN) {
     float mousePosX = (2 * ((float)x / 800) - 1) * (400);
     float mousePosY = (-2 * ((float)y / 800) + 1) * (400);
+    mousePoints.push_back({mousePosX, mousePosY});
     int gridX = 0;
     int gridY = 0;
     ScreenPosToGridPoint(mousePosX, mousePosY, gridX, gridY);
     gridX += size_x / 2;
     gridY += size_y / 2;
-    _gridDraw[gridY + gridX * size_y] = !_gridDraw[gridY + gridX * size_y];
+    // _gridDraw[gridY + gridX * size_y] = !_gridDraw[gridY + gridX * size_y];
 
     glutPostRedisplay();
   }
   // gluInvertMatrix();
+}
+
+void GridSpaceToGridVectorSpace(int gridX, int gridY, int &x, int &y) {
+  x = gridX + size_x / 2;
+  y = gridY + size_y / 2;
+}
+
+void DrawGridLine(int x0, int y0, int x1, int y1) {
+  // int dx = x1 - x0;
+  // int dy = y1 - y0;
+  // int d = 2 * dy - dx;
+  // int delE = 2 * dy;
+  // int delNE = 2 * (dy - dx);
+
+  // int x = x0;
+  // int y = y0;
+
+  // _gridDraw[y + x * size_y].first = true;
+
+  // while (x < x1) {
+  //   if (d <= 0) {
+  //     d += delE;
+  //     x++;
+  //     _gridDraw[y + x * size_y].second = {0.f, 1.f, 0.f};
+  //   } else {
+  //     d += delNE;
+  //     x++;
+  //     y++;
+  //     _gridDraw[y + x * size_y].second = {0.f, 0.f, 1.f};
+  //   }
+  //   _gridDraw[y + x * size_y].first = true;
+  // }
+  int dx = abs(x1 - x0);
+  int dy = abs(y1 - y0);
+  int sx = x0 < x1 ? 1 : -1;
+  int sy = y0 < y1 ? 1 : -1;
+  int err = dx - dy;
+
+  if (sx == 1 && sy == 1) {
+    if (dx > dy) {
+      std::cout << "Regions 1" << std::endl;
+    } else {
+      std::cout << "Regions 2" << std::endl;
+    }
+  } else if (sx == -1 && sy == 1) {
+    if (dx > dy) {
+      std::cout << "Regions 4" << std::endl;
+    } else {
+      std::cout << "Regions 3" << std::endl;
+    }
+  } else if (sx == -1 && sy == -1) {
+    if (dx > dy) {
+      std::cout << "Regions 5" << std::endl;
+    } else {
+      std::cout << "Regions 6" << std::endl;
+    }
+  } else if (sx == 1 && sy == -1) {
+    if (dx > dy) {
+      std::cout << "Regions 8" << std::endl;
+    } else {
+      std::cout << "Regions 7" << std::endl;
+    }
+  }
+
+  _gridDraw[y0 + x0 * size_y].first = true;
+  _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
+  std::cout << "Start Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
+            << std::endl;
+  while (x0 != x1 || y0 != y1) {
+    _gridDraw[y0 + x0 * size_y].first = true;
+    std::cout << x0 - size_x / 2 << " " << y0 - size_x / 2 << std::endl;
+    int e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+      _gridDraw[y0 + x0 * size_y].second = {0.f, 1.f, 0.f};
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+      _gridDraw[y0 + x0 * size_y].second = {0.f, 0.f, 1.f};
+    }
+  }
+  std::cout << "End Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
+            << std::endl;
+  _gridDraw[y0 + x0 * size_y].first = true;
+  _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
 }
