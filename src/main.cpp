@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <ostream>
 #include <stdio.h>
 /*** freeglut***/
 #include "freeglut_std.h"
@@ -26,6 +27,9 @@ void DrawGrid(std::vector<std::vector<int>> &grid_point);
 void DrawGridLine(int x0, int y0, int x1, int y1);
 void GridSpaceToGridVectorSpace(int gridX, int gridY, int &x, int &y);
 void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY);
+void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &mousePoints,
+                       const std::vector<std::array<float, 2>> &,
+                       const std::array<float, 3> &color);
 
 std::array<int, 2> windowSize{800, 800};
 std::vector<std::vector<int>> _gridPoint{};
@@ -72,9 +76,11 @@ void RenderScene(void) {
   glViewport(0, 0, windowSize[0], windowSize[1]);
 
   if (mousePoints.size() >= 2) {
+    std::vector<std::array<float, 2>> mpoint;
     glColor3f(1.0f, 0.f, 0.f);
     glBegin(GL_LINES);
-    for (int i = 0; i < mousePoints.size() - 1; i++) {
+    for (int i = 0; i < mousePoints.size(); i++) {
+      // Debug Use
       glVertex3f(mousePoints[i][0], mousePoints[i][1], 0);
       glVertex3f(mousePoints[(i + 1) % mousePoints.size()][0],
                  mousePoints[(i + 1) % mousePoints.size()][1], 0);
@@ -89,8 +95,13 @@ void RenderScene(void) {
       GridSpaceToGridVectorSpace(gridX1, gridY1, gridX1, gridY1);
 
       DrawGridLine(gridX0, gridY0, gridX1, gridY1);
+      mpoint.push_back({(float)gridX0, (float)gridY0});
     }
     glEnd();
+
+    if (mousePoints.size() == 3) {
+      HalfSpaceFillCell(mousePoints, mpoint, {1, 1, 1});
+    }
   }
 
   DrawGrid(_gridPoint);
@@ -271,10 +282,19 @@ void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY) {
   gridX = std::round(x / sizeX);
   gridY = std::round(y / sizeY);
 }
+
 void MousePress(int button, int state, int x, int y) {
   if (state == GLUT_DOWN) {
     float mousePosX = (2 * ((float)x / 800) - 1) * (400);
     float mousePosY = (-2 * ((float)y / 800) + 1) * (400);
+
+    if (mousePoints.size() >= 3) {
+      mousePoints.clear();
+      ChangeGridPointSize(_gridPoint, size_x, size_y);
+      glutPostRedisplay();
+      return;
+    }
+
     mousePoints.push_back({mousePosX, mousePosY});
     int gridX = 0;
     int gridY = 0;
@@ -294,69 +314,45 @@ void GridSpaceToGridVectorSpace(int gridX, int gridY, int &x, int &y) {
 }
 
 void DrawGridLine(int x0, int y0, int x1, int y1) {
-  // int dx = x1 - x0;
-  // int dy = y1 - y0;
-  // int d = 2 * dy - dx;
-  // int delE = 2 * dy;
-  // int delNE = 2 * (dy - dx);
-
-  // int x = x0;
-  // int y = y0;
-
-  // _gridDraw[y + x * size_y].first = true;
-
-  // while (x < x1) {
-  //   if (d <= 0) {
-  //     d += delE;
-  //     x++;
-  //     _gridDraw[y + x * size_y].second = {0.f, 1.f, 0.f};
-  //   } else {
-  //     d += delNE;
-  //     x++;
-  //     y++;
-  //     _gridDraw[y + x * size_y].second = {0.f, 0.f, 1.f};
-  //   }
-  //   _gridDraw[y + x * size_y].first = true;
-  // }
   int dx = abs(x1 - x0);
   int dy = abs(y1 - y0);
   int sx = x0 < x1 ? 1 : -1;
   int sy = y0 < y1 ? 1 : -1;
   int err = dx - dy;
 
-  if (sx == 1 && sy == 1) {
-    if (dx > dy) {
-      std::cout << "Regions 1" << std::endl;
-    } else {
-      std::cout << "Regions 2" << std::endl;
-    }
-  } else if (sx == -1 && sy == 1) {
-    if (dx > dy) {
-      std::cout << "Regions 4" << std::endl;
-    } else {
-      std::cout << "Regions 3" << std::endl;
-    }
-  } else if (sx == -1 && sy == -1) {
-    if (dx > dy) {
-      std::cout << "Regions 5" << std::endl;
-    } else {
-      std::cout << "Regions 6" << std::endl;
-    }
-  } else if (sx == 1 && sy == -1) {
-    if (dx > dy) {
-      std::cout << "Regions 8" << std::endl;
-    } else {
-      std::cout << "Regions 7" << std::endl;
-    }
-  }
+  // if (sx == 1 && sy == 1) {
+  //   if (dx > dy) {
+  //     std::cout << "Regions 1" << std::endl;
+  //   } else {
+  //     std::cout << "Regions 2" << std::endl;
+  //   }
+  // } else if (sx == -1 && sy == 1) {
+  //   if (dx > dy) {
+  //     std::cout << "Regions 4" << std::endl;
+  //   } else {
+  //     std::cout << "Regions 3" << std::endl;
+  //   }
+  // } else if (sx == -1 && sy == -1) {
+  //   if (dx > dy) {
+  //     std::cout << "Regions 5" << std::endl;
+  //   } else {
+  //     std::cout << "Regions 6" << std::endl;
+  //   }
+  // } else if (sx == 1 && sy == -1) {
+  //   if (dx > dy) {
+  //     std::cout << "Regions 8" << std::endl;
+  //   } else {
+  //     std::cout << "Regions 7" << std::endl;
+  //   }
+  // }
 
   _gridDraw[y0 + x0 * size_y].first = true;
   _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
-  std::cout << "Start Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
-            << std::endl;
+  // std::cout << "Start Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
+  //           << std::endl;
   while (x0 != x1 || y0 != y1) {
     _gridDraw[y0 + x0 * size_y].first = true;
-    std::cout << x0 - size_x / 2 << " " << y0 - size_x / 2 << std::endl;
+    // std::cout << x0 - size_x / 2 << " " << y0 - size_x / 2 << std::endl;
     int e2 = 2 * err;
     if (e2 > -dy) {
       err -= dy;
@@ -369,8 +365,89 @@ void DrawGridLine(int x0, int y0, int x1, int y1) {
       _gridDraw[y0 + x0 * size_y].second = {0.f, 0.f, 1.f};
     }
   }
-  std::cout << "End Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
-            << std::endl;
+  // std::cout << "End Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
+  //           << std::endl;
   _gridDraw[y0 + x0 * size_y].first = true;
   _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
+}
+
+std::array<float, 4>
+GetBbox(const std::vector<std::array<float, 2>> &FillPoints) {
+
+  float xMin = FillPoints[0][0];
+  float xMax = FillPoints[0][0];
+  float yMin = FillPoints[0][1];
+  float yMax = FillPoints[0][1];
+
+  for (auto point : FillPoints) {
+    if (point[0] < xMin) {
+      xMin = point[0];
+    }
+    if (point[0] > xMax) {
+      xMax = point[0];
+    }
+    if (point[1] < yMin) {
+      yMin = point[1];
+    }
+    if (point[1] > yMax) {
+      yMax = point[1];
+    }
+  }
+  return {xMin, xMax, yMin, yMax};
+}
+std::array<int, 4> BboxToCellBbox(const std::array<float, 4> &bbox) {
+  std::array<int, 4> cellBbox;
+  ScreenPosToGridPoint(bbox[0], bbox[2], cellBbox[0], cellBbox[2]);
+  ScreenPosToGridPoint(bbox[1], bbox[3], cellBbox[1], cellBbox[3]);
+  GridSpaceToGridVectorSpace(cellBbox[0], cellBbox[2], cellBbox[0],
+                             cellBbox[2]);
+  GridSpaceToGridVectorSpace(cellBbox[1], cellBbox[3], cellBbox[1],
+                             cellBbox[3]);
+  return cellBbox;
+}
+std::vector<std::array<int, 2>> GridPointToGridVectorPoint(
+    const std::vector<std::array<float, 2>> &ScreenPoints) {
+
+  std::vector<std::array<int, 2>> grid_vector_point;
+  for (auto point : ScreenPoints) {
+    std::array<int, 2> girdPoint;
+    ScreenPosToGridPoint(point[0], point[1], girdPoint[0], girdPoint[1]);
+    GridSpaceToGridVectorSpace(girdPoint[0], girdPoint[1], girdPoint[0],
+                               girdPoint[1]);
+    grid_vector_point.push_back(girdPoint);
+    std::cout << girdPoint[0] << " " << girdPoint[1] << std::endl;
+  }
+  return grid_vector_point;
+}
+
+void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &FillPoints,
+                       const std::vector<std::array<float, 2>> &gridPoint,
+                       const std::array<float, 3> &color) {
+  std::array<float, 4> BBox = GetBbox(FillPoints);
+  std::array<int, 4> cellBBox = BboxToCellBbox(BBox);
+
+  for (int x = cellBBox[0]; x < cellBBox[1]; x++) {
+    for (int y = cellBBox[2]; y < cellBBox[3]; y++) {
+      bool inside = true;
+
+      for (int i = 0; i < gridPoint.size(); i++) {
+        double determinant =
+            gridPoint[i][0] * (gridPoint[(i + 1) % gridPoint.size()][1] - y) +
+            gridPoint[(i + 1) % gridPoint.size()][0] * (y - gridPoint[i][1]) +
+            x * (gridPoint[i][1] - gridPoint[(i + 1) % gridPoint.size()][1]);
+
+        if (determinant < 0.0) {
+          inside = false;
+        }
+      }
+
+      if (inside) {
+        if (_gridDraw[y + x * size_y].first) {
+          continue;
+        }
+        _gridDraw[y + x * size_y].second = {color[0], color[1], color[2]};
+        _gridDraw[y + x * size_y].first = true;
+      }
+    }
+  }
 }
