@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <ostream>
+#include <queue>
 #include <stdio.h>
 /*** freeglut***/
 #include "freeglut_std.h"
@@ -14,6 +15,7 @@
 
 void ChangeSize(int, int);
 void RenderScene(void);
+void Timer(int);
 void MenuCallback(int);
 void OnKeyBoardPress(unsigned char, int, int);
 void TranslateMatrix(GLfloat, GLfloat, GLfloat);
@@ -34,6 +36,7 @@ void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &mousePoints,
 std::array<int, 2> windowSize{800, 800};
 std::vector<std::vector<int>> _gridPoint{};
 std::vector<std::pair<bool, std::array<float, 3>>> _gridDraw{};
+std::queue<std::pair<int, std::array<float, 3>>> _waitToDraw{};
 std::vector<std::array<float, 2>> mousePoints;
 int size_x = 21; // -10 ~ 10
 int size_y = 21;
@@ -54,6 +57,7 @@ int main(int argc, char **argv) {
   glutKeyboardFunc(OnKeyBoardPress);
   glutMouseFunc(MousePress);
   glutDisplayFunc(RenderScene);
+  glutTimerFunc(0, Timer, 0);
   glutMainLoop(); // http://www.programmer-club.com.tw/ShowSameTitleN/opengl/2288.html
   return 0;
 }
@@ -74,35 +78,6 @@ void RenderScene(void) {
   gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
   glEnable(GL_DEPTH_TEST);
   glViewport(0, 0, windowSize[0], windowSize[1]);
-
-  if (mousePoints.size() >= 2) {
-    std::vector<std::array<float, 2>> mpoint;
-    glColor3f(1.0f, 0.f, 0.f);
-    glBegin(GL_LINES);
-    for (int i = 0; i < mousePoints.size(); i++) {
-      // Debug Use
-      glVertex3f(mousePoints[i][0], mousePoints[i][1], 0);
-      glVertex3f(mousePoints[(i + 1) % mousePoints.size()][0],
-                 mousePoints[(i + 1) % mousePoints.size()][1], 0);
-
-      int gridX0, gridY0, gridX1, gridY1;
-      ScreenPosToGridPoint(mousePoints[i][0], mousePoints[i][1], gridX0,
-                           gridY0);
-      ScreenPosToGridPoint(mousePoints[(i + 1) % mousePoints.size()][0],
-                           mousePoints[(i + 1) % mousePoints.size()][1], gridX1,
-                           gridY1);
-      GridSpaceToGridVectorSpace(gridX0, gridY0, gridX0, gridY0);
-      GridSpaceToGridVectorSpace(gridX1, gridY1, gridX1, gridY1);
-
-      DrawGridLine(gridX0, gridY0, gridX1, gridY1);
-      mpoint.push_back({(float)gridX0, (float)gridY0});
-    }
-    glEnd();
-
-    if (mousePoints.size() == 3) {
-      HalfSpaceFillCell(mousePoints, mpoint, {1, 1, 1});
-    }
-  }
 
   DrawGrid(_gridPoint);
 
@@ -198,6 +173,7 @@ void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int totalX,
   size_y = totalY;
   grid_point.clear();
   _gridDraw.clear();
+  _waitToDraw = {};
   int halfX = totalX / 2;
   int halfY = totalY / 2;
   for (int x = -halfX; x <= halfX; x++) {
@@ -264,6 +240,17 @@ void DrawGrid(std::vector<std::vector<int>> &grid_point) {
   }
 }
 
+void Timer(int value) {
+  if (!_waitToDraw.empty()) {
+    auto value = _waitToDraw.front();
+    _gridDraw[value.first].first = true;
+    _gridDraw[value.first].second = value.second;
+    _waitToDraw.pop();
+  }
+  glutPostRedisplay();
+  glutTimerFunc(100, Timer, 0);
+}
+
 void OnKeyBoardPress(unsigned char key, int x, int y) {
   switch (key) {
   case ' ':
@@ -296,12 +283,33 @@ void MousePress(int button, int state, int x, int y) {
     }
 
     mousePoints.push_back({mousePosX, mousePosY});
-    int gridX = 0;
-    int gridY = 0;
-    ScreenPosToGridPoint(mousePosX, mousePosY, gridX, gridY);
-    gridX += size_x / 2;
-    gridY += size_y / 2;
-    // _gridDraw[gridY + gridX * size_y] = !_gridDraw[gridY + gridX * size_y];
+
+    if (mousePoints.size() >= 2) {
+      std::vector<std::array<float, 2>> mpoint;
+      // glColor3f(1.0f, 0.f, 0.f);
+      for (int i = 0; i < mousePoints.size(); i++) {
+        // Debug Use
+        // glVertex3f(mousePoints[i][0], mousePoints[i][1], 0);
+        // glVertex3f(mousePoints[(i + 1) % mousePoints.size()][0],
+        //            mousePoints[(i + 1) % mousePoints.size()][1], 0);
+
+        int gridX0, gridY0, gridX1, gridY1;
+        ScreenPosToGridPoint(mousePoints[i][0], mousePoints[i][1], gridX0,
+                             gridY0);
+        ScreenPosToGridPoint(mousePoints[(i + 1) % mousePoints.size()][0],
+                             mousePoints[(i + 1) % mousePoints.size()][1],
+                             gridX1, gridY1);
+        GridSpaceToGridVectorSpace(gridX0, gridY0, gridX0, gridY0);
+        GridSpaceToGridVectorSpace(gridX1, gridY1, gridX1, gridY1);
+
+        DrawGridLine(gridX0, gridY0, gridX1, gridY1);
+        mpoint.push_back({(float)gridX0, (float)gridY0});
+      }
+
+      if (mousePoints.size() == 3) {
+        HalfSpaceFillCell(mousePoints, mpoint, {1, 1, 1});
+      }
+    }
 
     glutPostRedisplay();
   }
@@ -319,32 +327,6 @@ void DrawGridLine(int x0, int y0, int x1, int y1) {
   int sx = x0 < x1 ? 1 : -1;
   int sy = y0 < y1 ? 1 : -1;
   int err = dx - dy;
-
-  // if (sx == 1 && sy == 1) {
-  //   if (dx > dy) {
-  //     std::cout << "Regions 1" << std::endl;
-  //   } else {
-  //     std::cout << "Regions 2" << std::endl;
-  //   }
-  // } else if (sx == -1 && sy == 1) {
-  //   if (dx > dy) {
-  //     std::cout << "Regions 4" << std::endl;
-  //   } else {
-  //     std::cout << "Regions 3" << std::endl;
-  //   }
-  // } else if (sx == -1 && sy == -1) {
-  //   if (dx > dy) {
-  //     std::cout << "Regions 5" << std::endl;
-  //   } else {
-  //     std::cout << "Regions 6" << std::endl;
-  //   }
-  // } else if (sx == 1 && sy == -1) {
-  //   if (dx > dy) {
-  //     std::cout << "Regions 8" << std::endl;
-  //   } else {
-  //     std::cout << "Regions 7" << std::endl;
-  //   }
-  // }
 
   _gridDraw[y0 + x0 * size_y].first = true;
   _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
@@ -445,8 +427,7 @@ void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &FillPoints,
         if (_gridDraw[y + x * size_y].first) {
           continue;
         }
-        _gridDraw[y + x * size_y].second = {color[0], color[1], color[2]};
-        _gridDraw[y + x * size_y].first = true;
+        _waitToDraw.push({y + x * size_y, {color[0], color[1], color[2]}});
       }
     }
   }
