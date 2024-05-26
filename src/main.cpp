@@ -1,9 +1,13 @@
 
+#include <X11/Xlib.h>
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <math.h>
 #include <ostream>
 #include <queue>
+#include <random>
+#include <stdbool.h>
 #include <stdio.h>
 /*** freeglut***/
 #include "freeglut_std.h"
@@ -32,6 +36,7 @@ void ScreenPosToGridPoint(float x, float y, int &gridX, int &gridY);
 void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &mousePoints,
                        const std::vector<std::array<float, 2>> &,
                        const std::array<float, 3> &color);
+void CrowFillCell(const std::vector<std::array<float, 2>> &gridPoint);
 
 std::array<int, 2> windowSize{800, 800};
 std::vector<std::vector<int>> _gridPoint{};
@@ -89,12 +94,15 @@ void MenuCallback(int value) {
   switch (value) {
   case 1:
     ChangeGridPointSize(_gridPoint, 21, 21);
+    mousePoints.clear();
     break;
   case 2:
     ChangeGridPointSize(_gridPoint, 31, 31);
+    mousePoints.clear();
     break;
   case 3:
     ChangeGridPointSize(_gridPoint, 41, 41);
+    mousePoints.clear();
     break;
   }
   glutPostRedisplay();
@@ -174,6 +182,7 @@ void ChangeGridPointSize(std::vector<std::vector<int>> &grid_point, int totalX,
   grid_point.clear();
   _gridDraw.clear();
   _waitToDraw = {};
+
   int halfX = totalX / 2;
   int halfY = totalY / 2;
   for (int x = -halfX; x <= halfX; x++) {
@@ -248,7 +257,7 @@ void Timer(int value) {
     _waitToDraw.pop();
   }
   glutPostRedisplay();
-  glutTimerFunc(100, Timer, 0);
+  glutTimerFunc(50, Timer, 0);
 }
 
 void OnKeyBoardPress(unsigned char key, int x, int y) {
@@ -276,10 +285,10 @@ void MousePress(int button, int state, int x, int y) {
     float mousePosY = (-2 * ((float)y / 800) + 1) * (400);
 
     if (mousePoints.size() >= 3) {
-      mousePoints.clear();
+      // mousePoints.clear();
       ChangeGridPointSize(_gridPoint, size_x, size_y);
-      glutPostRedisplay();
-      return;
+      // glutPostRedisplay();
+      // return;
     }
 
     mousePoints.push_back({mousePosX, mousePosY});
@@ -306,8 +315,8 @@ void MousePress(int button, int state, int x, int y) {
         mpoint.push_back({(float)gridX0, (float)gridY0});
       }
 
-      if (mousePoints.size() == 3) {
-        HalfSpaceFillCell(mousePoints, mpoint, {1, 1, 1});
+      if (mousePoints.size() >= 3) {
+        CrowFillCell(mpoint);
       }
     }
 
@@ -321,6 +330,17 @@ void GridSpaceToGridVectorSpace(int gridX, int gridY, int &x, int &y) {
   y = gridY + size_y / 2;
 }
 
+float RandomF(float minY, float maxY) {
+  std::random_device rd;  // 使用随机设备生成种子
+  std::mt19937 gen(rd()); // 使用梅森旋转算法的随机数生成器
+
+  // 定义0到1之间的浮点数分布
+  std::uniform_real_distribution<> dis(minY, maxY);
+
+  // 生成并输出一个随机浮点数
+  return dis(gen);
+}
+
 void DrawGridLine(int x0, int y0, int x1, int y1) {
   int dx = abs(x1 - x0);
   int dy = abs(y1 - y0);
@@ -328,8 +348,21 @@ void DrawGridLine(int x0, int y0, int x1, int y1) {
   int sy = y0 < y1 ? 1 : -1;
   int err = dx - dy;
 
+  float len = sqrtf(powf(abs(x1 - x0), 2) + powf(abs(y1 - y0), 2));
+
+  std::array<std::array<float, 3>, 2> pColor;
+  pColor[0] = {RandomF(0, 1), RandomF(0, 1), RandomF(0, 1)};
+  pColor[1] = {RandomF(0, 1), RandomF(0, 1), RandomF(0, 1)};
+  if (_gridDraw[y0 + x0 * size_y].first) {
+    pColor[0] = _gridDraw[y0 + x0 * size_y].second;
+  }
+  if (_gridDraw[y1 + x1 * size_y].first) {
+    pColor[1] = _gridDraw[y1 + x1 * size_y].second;
+  }
+
   _gridDraw[y0 + x0 * size_y].first = true;
-  _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
+  _gridDraw[y0 + x0 * size_y].second = pColor[0];
+
   // std::cout << "Start Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
   //           << std::endl;
   while (x0 != x1 || y0 != y1) {
@@ -339,18 +372,20 @@ void DrawGridLine(int x0, int y0, int x1, int y1) {
     if (e2 > -dy) {
       err -= dy;
       x0 += sx;
-      _gridDraw[y0 + x0 * size_y].second = {0.f, 1.f, 0.f};
     }
     if (e2 < dx) {
       err += dx;
       y0 += sy;
-      _gridDraw[y0 + x0 * size_y].second = {0.f, 0.f, 1.f};
     }
+    float lenToSecond = sqrtf(powf(abs(x1 - x0), 2) + powf(abs(y1 - y0), 2));
+    float t = (len - lenToSecond) / len;
+    _gridDraw[y0 + x0 * size_y].second = {
+        pColor[0][0] * (1 - t) + pColor[1][0] * (t),
+        pColor[0][1] * (1 - t) + pColor[1][1] * (t),
+        pColor[0][2] * (1 - t) + pColor[1][2] * (t)};
   }
-  // std::cout << "End Points: " << x0 - size_x / 2 << " " << y0 - size_x / 2
-  //           << std::endl;
-  _gridDraw[y0 + x0 * size_y].first = true;
-  _gridDraw[y0 + x0 * size_y].second = {1, 0, 0};
+  _gridDraw[y1 + x1 * size_y].first = true;
+  _gridDraw[y1 + x1 * size_y].second = pColor[1];
 }
 
 std::array<float, 4>
@@ -400,6 +435,177 @@ std::vector<std::array<int, 2>> GridPointToGridVectorPoint(
     std::cout << girdPoint[0] << " " << girdPoint[1] << std::endl;
   }
   return grid_vector_point;
+}
+
+void findEdge(const std::vector<std::array<float, 2>> &vList, int &i, int n,
+              int &y, std::array<float, 2> &d, std::array<float, 2> &e,
+              int &rem, int lr) {
+
+  i = (i + lr) % n;
+  rem--;
+
+  e = vList[i];
+  int prev = ((i - lr) + n) % n;
+  d[0] = (vList[prev][0] - e[0]) / (vList[prev][1] - e[1]);
+  d[1] = vList[prev][1] - e[1];
+}
+
+void CrowFillCell(const std::vector<std::array<float, 2>> &gridPoint) {
+
+  int li, ri;                  // left & right upper endpoint indices
+  float ly, ry;                // left & right upper endpoint y values
+  std::array<float, 2> dl, dr; // current left edge and delta
+  std::array<float, 2> l, r;   // current left and right edge
+  int rem;                     // number of remaining vertices
+  int y;                       // current scanline
+  float lx, rx;
+  int n = gridPoint.size();
+  std::vector<std::pair<int, std::array<float, 3>>> originPointColor;
+
+  int minYindex = 0;
+  int minY = gridPoint[0][1];
+  int minX = gridPoint[0][1];
+  for (int i = 0; i < gridPoint.size(); i++) {
+    originPointColor.push_back(
+        {i, _gridDraw[int(round(gridPoint[i][1])) +
+                      int(round(gridPoint[i][0])) * size_y]
+                .second});
+    if (minY > gridPoint[i][1]) {
+      minX = gridPoint[i][0];
+      minY = gridPoint[i][1];
+      minYindex = i;
+    }
+  }
+
+  li = ri = minYindex;
+  ly = ry = y = round(gridPoint[minYindex][1]);
+  lx = rx = round(gridPoint[minYindex][0]);
+  rem = n;
+
+  auto drawSpan = [](int y, int xl, int xr) {
+    int len = xr - xl;
+    std::array<std::array<float, 3>, 2> pColor;
+
+    if (_gridDraw[y + xl * size_y].first == true) {
+      pColor[0] = _gridDraw[y + xl * size_y].second;
+    } else if (_gridDraw[y + (xl + 1) * size_y].first == true) {
+      pColor[0] = _gridDraw[y + (xl + 1) * size_y].second;
+    } else if (_gridDraw[y + (xl - 1) * size_y].first == true) {
+      pColor[0] = _gridDraw[y + (xl - 1) * size_y].second;
+    }
+
+    if (_gridDraw[y + xr * size_y].first == true) {
+      pColor[1] = _gridDraw[y + xr * size_y].second;
+    } else if (_gridDraw[y + (xr + 1) * size_y].first == true) {
+      pColor[1] = _gridDraw[y + (xr + 1) * size_y].second;
+    } else if (_gridDraw[y + (xr - 1) * size_y].first == true) {
+      pColor[1] = _gridDraw[y + (xr - 1) * size_y].second;
+    }
+
+    // std::cout << "L_Point: " << pColor[0][0] << "," << pColor[0][1] << ","
+    //           << pColor[0][2] << std::endl;
+    // std::cout << "R_Point: " << pColor[1][0] << "," << pColor[1][1] << ","
+    //           << pColor[1][2] << std::endl;
+    std::cout << "len" << len << std::endl;
+    for (int x = xl; x <= xr; ++x) {
+      if (_gridDraw[y + x * size_y].first) {
+        continue;
+      }
+      float lenToL = x - xl;
+      float t = lenToL / len;
+      _waitToDraw.push({y + x * size_y,
+                        {pColor[0][0] * (1 - t) + pColor[1][0] * (t),
+                         pColor[0][1] * (1 - t) + pColor[1][1] * (t),
+                         pColor[0][2] * (1 - t) + pColor[1][2] * (t)}});
+    }
+  };
+
+  findEdge(gridPoint, ri, n, y, dr, r, rem, -1);
+  findEdge(gridPoint, li, n, y, dl, l, rem, 1);
+
+  _waitToDraw.push({minY + minX * size_y, {1, 0, 0}});
+  _waitToDraw.push(
+      {int(round(gridPoint[ri][1])) + int(round(gridPoint[ri][0])) * size_y,
+       {1, 0, 0}});
+  _waitToDraw.push(
+      {int(round(gridPoint[li][1])) + int(round(gridPoint[li][0])) * size_y,
+       {1, 0, 0}});
+
+  while (rem > 0) {
+
+    bool isUpdateEdge = false;
+    std::vector<int> currentRoundUpdateEdgePoint;
+    // Find the appropriate left edge
+    if (ceil(l[1]) <= y) {
+      findEdge(gridPoint, li, n, y, dl, l, rem, 1);
+      isUpdateEdge = true;
+    }
+
+    // Find the appropriate right edge
+    if (ceil(r[1]) <= y) {
+      findEdge(gridPoint, ri, n, y, dr, r, rem, -1);
+      isUpdateEdge = true;
+    }
+
+    if (isUpdateEdge) {
+      int rprev = ((ri + 1) + n) % n;
+
+      currentRoundUpdateEdgePoint.push_back(rprev);
+      currentRoundUpdateEdgePoint.push_back(ri);
+      _waitToDraw.push({int(round(gridPoint[rprev][1])) +
+                            int(round(gridPoint[rprev][0])) * size_y,
+                        {1, 0, 0}});
+      _waitToDraw.push(
+          {int(round(gridPoint[ri][1])) + int(round(gridPoint[ri][0])) * size_y,
+           {1, 0, 0}});
+
+      int lprev = ((li - 1) + n) % n;
+
+      currentRoundUpdateEdgePoint.push_back(lprev);
+      currentRoundUpdateEdgePoint.push_back(li);
+
+      _waitToDraw.push({int(round(gridPoint[lprev][1])) +
+                            int(round(gridPoint[lprev][0])) * size_y,
+                        {1, 0, 0}});
+      _waitToDraw.push(
+          {int(round(gridPoint[li][1])) + int(round(gridPoint[li][0])) * size_y,
+           {1, 0, 0}});
+
+      for (int i = 0; i < gridPoint.size(); i++) {
+        bool isChange = false;
+        for (auto changePoint : currentRoundUpdateEdgePoint) {
+          if (changePoint == i) {
+            isChange = true;
+          }
+        }
+        if (!isChange) {
+          std::cout << i << std::endl;
+          _waitToDraw.push({int(round(gridPoint[i][1])) +
+                                int(round(gridPoint[i][0])) * size_y,
+                            originPointColor[i].second});
+        }
+      }
+    }
+
+    // While l & r span y (the current scanline)
+    // std::cout << minYindex << std::endl;
+
+    while (round(l[1]) > y && round(r[1]) > y) {
+      // std::cout << r[0] << std::endl;
+      // std::cout << "ly " << l[1] << " ry " << r[1] << std::endl;
+
+      drawSpan(y, round(lx), round(rx));
+      lx += dl[0];
+      rx += dr[0];
+      y++;
+    }
+
+    for (int i = 0; i < gridPoint.size(); i++) {
+      _waitToDraw.push(
+          {int(round(gridPoint[i][1])) + int(round(gridPoint[i][0])) * size_y,
+           originPointColor[i].second});
+    }
+  }
 }
 
 void HalfSpaceFillCell(const std::vector<std::array<float, 2>> &FillPoints,

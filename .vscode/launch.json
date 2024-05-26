@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/<executable file>",
+            "program": "${workspaceFolder}/build/ComputerGraph",
             "args": [],
             "cwd": "${workspaceFolder}"
         }
