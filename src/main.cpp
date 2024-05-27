@@ -464,7 +464,7 @@ void CrowFillCell(const std::vector<std::array<float, 2>> &gridPoint) {
 
   int minYindex = 0;
   int minY = gridPoint[0][1];
-  int minX = gridPoint[0][1];
+  int minX = gridPoint[0][0];
   for (int i = 0; i < gridPoint.size(); i++) {
     originPointColor.push_back(
         {i, _gridDraw[int(round(gridPoint[i][1])) +
@@ -515,6 +515,7 @@ void CrowFillCell(const std::vector<std::array<float, 2>> &gridPoint) {
       float t = lenToL / len;
       _waitToDraw.push({y + x * size_y,
                         {pColor[0][0] * (1 - t) + pColor[1][0] * (t),
+
                          pColor[0][1] * (1 - t) + pColor[1][1] * (t),
                          pColor[0][2] * (1 - t) + pColor[1][2] * (t)}});
     }
