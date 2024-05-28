@@ -13,7 +13,7 @@ set(SRC_FILES)
 add_subdirectory(thirdparty/freeglut)
 
 # you need pre-install OpenGL, GLU, please google
-add_executable(${PROJECT_NAME} ${SRC_DIR}/triangle.cpp ${INCLUDE_FILE})
+add_executable(${PROJECT_NAME} ${SRC_DIR}/main.cpp ${INCLUDE_FILE})
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL ${THIRDPARTY}/stbImage)
