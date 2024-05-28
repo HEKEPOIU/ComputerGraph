@@ -1,527 +1,244 @@
-
-#include "freeglut_std.h"
-#include <GL/gl.h>
-#include <array>
-#include <cmath>
 #include <iostream>
-#include <ostream>
-#include <stdio.h>
-/*** freeglut***/
+#include <math.h>
+#include <stdlib.h>
+#include <string>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #include <freeglut.h>
 
-void ChangeSize(int, int);
-void RenderScene(void);
-void MenuCallback(int);
-void OnKeyBoardPress(unsigned char, int, int);
-void TranslateMatrix(GLfloat, GLfloat, GLfloat);
-void RotateMatrix(float angle, float x, float y, float z);
-void ScaleMatrix(float x, float y, float z);
-void MousePress(int button, int state, int x, int y);
+// Lighting data
+GLfloat lightAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+GLfloat lightDiffuse[] = {0.7f, 0.7f, 0.7f, 1.0f};
+GLfloat lightSpecular[] = {0.9f, 0.9f, 0.9f};
+GLfloat materialColor[] = {0.8f, 0.0f, 0.0f};
+GLfloat vLightPos[] = {-80.0f, 120.0f, 100.0f, 0.0f};
+GLfloat ground[3][3] = {
+    {0.0f, -25.0f, 0.0f}, {10.0f, -25.0f, 0.0f}, {10.0f, -25.0f, -10.0f}};
 
-std::array<float, 3> mouseViewport1WorldPos1{10, 10, 0};
-std::array<float, 3> mouseViewport1WorldPos2{10, 10, 0};
+GLuint textures[4];
 
-std::array<float, 3> mouseViewport2WorldPos1{10, 10, 0};
-std::array<float, 3> mouseViewport2WorldPos2{10, 10, 0};
+int nStep = 0;
 
-bool mousepoint01Status = false;
-bool mousepoint02Status = false;
+void MyKeyboard(unsigned char key, int x, int y) {
+  switch (key) {
+  case 'r':
+    if (nStep < 4)
+      nStep++;
+    else
+      nStep = 0;
+    break;
+  default:
+    break;
+  }
 
-GLenum glShadeType = GL_SMOOTH;
-float r = 0.0;
-std::array<float, 3> currentPos{0, 0, 0};
-std::array<float, 3> currentRotate{0, 0, 0};
-std::array<float, 3> currentScale{1, 1, 1};
-
-std::array<int, 2> windowSize{800, 800};
-
-int main(int argc, char **argv) {
-  glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-  glutInitWindowSize(800, 800);
-  glutInitWindowPosition(600, 80);
-  glutCreateWindow("Simple Triangle");
-  glutCreateMenu(MenuCallback);
-  glutAddMenuEntry("GL_SMOOTH", 1);
-  glutAddMenuEntry("GL_FLAT", 2);
-  glutAttachMenu(GLUT_RIGHT_BUTTON);
-  glutReshapeFunc(ChangeSize);
-  glutKeyboardFunc(OnKeyBoardPress);
-  glutMouseFunc(MousePress);
-  glutDisplayFunc(RenderScene);
-  glutMainLoop(); // http://www.programmer-club.com.tw/ShowSameTitleN/opengl/2288.html
-  return 0;
+  glutPostRedisplay();
 }
-void ChangeSize(int w, int h) {
-  printf("Window Size= %d X %d\n", w, h);
-  glViewport(0, 0, w, h);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(-10, 10, -10, 10, -50, 50);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-}
+
+// Called to draw scene
 void RenderScene(void) {
-  glClearColor(0, 0, 0, 1.0);
+  // Clear the window with current clearing color
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  gluLookAt(0, 0, 10.0f, 0, 0, 0, 0, 1, 0);
-  glShadeModel(glShadeType);
-  glEnable(GL_DEPTH_TEST);
-  glViewport(0, 0, windowSize[0], windowSize[1]);
-  glBegin(GL_LINES);
-  glVertex2f(0, 100);
-  glVertex2f(0, -100);
+  glShadeModel(GL_SMOOTH);
+  glEnable(GL_NORMALIZE);
+
+  glPushMatrix();
+
+  // Draw plane that the cube rests on
+  glDisable(GL_LIGHTING);
+  glColor3ub(255, 255, 255);
+  if (nStep >= 1) {
+    glEnable(GL_TEXTURE_2D); // 啟動openGL的2D材質填充模式
+
+    // 將textures[0]中所儲存的材質貼在四邊形上
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-100.0f, -25.3f, -100.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-100.0f, -25.3f, 100.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(100.0f, -25.3f, 100.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(100.0f, -25.3f, -100.0f);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+  } else {
+    // glColor3f(0.0f, 0.0f, 0.90f); // Blue
+    glBegin(GL_QUADS);
+    glVertex3f(-100.0f, -25.3f, -100.0f);
+    glVertex3f(-100.0f, -25.3f, 100.0f);
+    glVertex3f(100.0f, -25.3f, 100.0f);
+    glVertex3f(100.0f, -25.3f, -100.0f);
+    glEnd();
+  }
+
+  // Set drawing color to Red
+  glColor3f(1.0f, 0.0f, 0.0f);
+
+  // Move the cube slightly forward and to the left
+  glTranslatef(-10.0f, 0.0f, 10.0f);
+
+  glColor3ub(255, 255, 255);
+
+  if (nStep >= 2) {
+    glEnable(GL_TEXTURE_2D);
+  }
+  // Front Face (before rotation)
+  glBindTexture(GL_TEXTURE_2D, textures[1]);
+  glBegin(GL_QUADS);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex3f(25.0f, 25.0f, 25.0f);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex3f(25.0f, -25.0f, 25.0f);
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3f(-25.0f, -25.0f, 25.0f);
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex3f(-25.0f, 25.0f, 25.0f);
   glEnd();
 
-  // glBegin(GL_LINES);
-  // glColor3f(1, 0, 0);
-  // glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
-  //            mouseViewport1WorldPos1[2]);
-  // glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
-  //            mouseViewport1WorldPos2[2]);
-  // glEnd();
+  glDisable(GL_TEXTURE_2D);
 
-  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
-  // RotateMatrix(currentRotate[0],
-  //              mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-  //              mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-  //              0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
-
-  // glBegin(GL_QUADS);
-  // glColor3f(1, 0, 0);
-  // glVertex3f(10, .1, 0);   // RB
-  // glVertex3f(10, -.1, 0);  // top
-  // glVertex3f(-10, -.1, 0); // LB
-  // glVertex3f(-10, .1, 0);  // top
-  // glEnd();
-
-  // glBegin(GL_QUADS);
-  // glColor3f(0, 1, 0);
-  // glVertex3f(.1, 10, 0);   // RB
-  // glVertex3f(-.1, 10, 0);  // top
-  // glVertex3f(-.1, -10, 0); // LB
-  // glVertex3f(.1, -10, 0);  // top
-  // glEnd();
-
-  // glBegin(GL_QUADS);
-  // glColor3f(0, 0, 1);
-  // glVertex3f(.1, 0, 10);   // RB
-  // glVertex3f(-.1, 0, 10);  // top
-  // glVertex3f(-.1, 0, -10); // LB
-  // glVertex3f(.1, 0, -10);  // top
-  // glEnd();
-  glViewport(0, 0, windowSize[0] / 2, windowSize[1]);
-
-  glBegin(GL_LINES);
-  glColor3f(1, 1, 1);
-  glVertex3f(mouseViewport1WorldPos1[0], mouseViewport1WorldPos1[1],
-             mouseViewport1WorldPos1[2]);
-  glVertex3f(mouseViewport1WorldPos2[0], mouseViewport1WorldPos2[1],
-             mouseViewport1WorldPos2[2]);
+  if (nStep >= 3) {
+    glEnable(GL_TEXTURE_2D);
+  }
+  // Top of cube
+  glBindTexture(GL_TEXTURE_2D, textures[2]);
+  glBegin(GL_QUADS);
+  // Front Face
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3f(25.0f, 25.0f, 25.0f);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex3f(25.0f, 25.0f, -25.0f);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex3f(-25.0f, 25.0f, -25.0f);
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex3f(-25.0f, 25.0f, 25.0f);
   glEnd();
 
-  // TranslateMatrix(currentPos[0], currentPos[1], currentPos[2]);
-  RotateMatrix(currentRotate[0],
-               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-               0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  // ScaleMatrix(currentScale[0], currentScale[1], currentScale[2]);
+  glDisable(GL_TEXTURE_2D);
 
-  // front
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 1, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(0, 5, 0); // top
-  glEnd();
-  // //-------------------------- 1
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-  // //---------------- 2
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, -5);
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
+  if (nStep >= 4) {
+    glEnable(GL_TEXTURE_2D);
+  }
+  // Last two segments for effect
+  glBindTexture(GL_TEXTURE_2D, textures[3]);
+  glBegin(GL_QUADS);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex3f(25.0f, 25.0f, -25.0f);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex3f(25.0f, -25.0f, -25.0f);
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex3f(25.0f, -25.0f, 25.0f);
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex3f(25.0f, 25.0f, 25.0f);
   glEnd();
 
-  // //------------------------ 3
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
+  glDisable(GL_TEXTURE_2D);
 
-  glVertex3f(5, -5, 0); // RB
+  glTranslatef(-10.0f, 0.0f, 10.0f);
 
-  glColor3f(0, 0, 1);
+  glPopMatrix();
 
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 4
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(0, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-  //------------------------ 5
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 6
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, -5);
-  glEnd();
-
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(5, -5, -5);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(1, 0, 0);
-  glVertex3f(0, 5, -5);
-
-  glEnd();
-
-  glViewport(windowSize[0] / 2, 0, windowSize[0] / 2, 800);
-  RotateMatrix(-currentRotate[0],
-               mouseViewport1WorldPos2[0] - mouseViewport1WorldPos1[0],
-               mouseViewport1WorldPos2[1] - mouseViewport1WorldPos1[1],
-               0); // x
-  // RotateMatrix(currentRotate[1], 0, 1, 0);
-  // RotateMatrix(currentRotate[2], 0, 0, 1);
-  glBegin(GL_LINES);
-  glColor3f(1, 1, 1);
-  glVertex3f(mouseViewport2WorldPos1[0], mouseViewport2WorldPos1[1],
-             mouseViewport2WorldPos1[2]);
-  glVertex3f(mouseViewport2WorldPos2[0], mouseViewport2WorldPos2[1],
-             mouseViewport2WorldPos2[2]);
-  glEnd();
-
-  RotateMatrix(currentRotate[0],
-               mouseViewport2WorldPos2[0] - mouseViewport2WorldPos1[0],
-               mouseViewport2WorldPos2[1] - mouseViewport2WorldPos1[1],
-               0); // x
-
-  // front
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 1, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(1, 1, 1);
-  glVertex3f(0, 5, 0); // top
-  glEnd();
-  // //-------------------------- 1
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, 0);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-  // //---------------- 2
-
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, 0);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 5, -5);
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-  glEnd();
-
-  // //------------------------ 3
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(-5, -5, 0); // LB
-
-  glColor3f(0, 0, 1);
-
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 4
-  glBegin(GL_TRIANGLES);
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, 0); // RB
-
-  glColor3f(0, 0, 1);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(0, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-  //------------------------ 5
-  glBegin(GL_TRIANGLES);
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, 0); // RB
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glEnd();
-
-  //------------------------ 6
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, 0); // top
-
-  glColor3f(1, 0, 1);
-  glVertex3f(5, -5, -5);
-  glColor3f(1, 0, 1);
-  glVertex3f(0, 5, -5);
-  glEnd();
-
-  glBegin(GL_TRIANGLES);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(5, -5, -5);
-
-  glColor3f(0, 1, 0);
-  glVertex3f(-5, -5, -5);
-
-  glColor3f(1, 0, 0);
-  glVertex3f(0, 5, -5);
-
-  glEnd();
-
+  // Flush drawing commands
   glutSwapBuffers();
 }
 
-void MenuCallback(int value) {
-  switch (value) {
-  case 1:
-    glShadeType = GL_SMOOTH;
-    break;
-  case 2:
-    glShadeType = GL_FLAT;
-    break;
-  }
-  glutPostRedisplay();
-}
+void LoadTexture(const std::string &path, int index) {
+  int width4, height4, channels4;
+  unsigned char *image4 =
+      stbi_load(path.c_str(), &width4, &height4, &channels4, 0);
+  if (!image4) {
+    std::cout << "image4 empty\n";
+  } else {
+    // 將讀取進來的圖片檔案當作材質存進textures中
+    glGenTextures(1, &textures[index]);
+    glBindTexture(GL_TEXTURE_2D, textures[index]);
 
-void print4mat(GLfloat array[16]) {
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      printf("%-3f ", array[4 * j + i]);
-    }
-    printf("\n");
-  }
-}
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-void TranslateMatrix(GLfloat x, GLfloat y, GLfloat z) {
-  GLfloat rotMatrix[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, rotMatrix);
+    GLenum format;
+    if (channels4 == 1)
+      format = GL_RED;
+    else if (channels4 == 3)
+      format = GL_RGB;
+    else if (channels4 == 4)
+      format = GL_RGBA;
+    else
+      format = 0; // 处理不支持的通道数
 
-  rotMatrix[12] = x;
-  rotMatrix[13] = y;
-  rotMatrix[14] = z;
-  glMultMatrixf(rotMatrix);
-}
-
-void RotateMatrix(float angle, float x, float y, float z) {
-  GLfloat rotMatrix[16];
-  float angleDeg2Rad = angle * (M_PI / 180.0f);
-
-  float cosAngle = cos(angleDeg2Rad);
-  float sinAngle = sin(angleDeg2Rad);
-
-  float len = sqrt(x * x + y * y + z * z);
-
-  if (len != 0) {
-    x /= len;
-    y /= len;
-    z /= len;
-  }
-
-  float omc = 1.0f - cosAngle;
-
-  rotMatrix[0] = x * x * omc + cosAngle;
-  rotMatrix[1] = y * x * omc + z * sinAngle;
-  rotMatrix[2] = x * z * omc - y * sinAngle;
-  rotMatrix[3] = 0.0f;
-
-  rotMatrix[4] = x * y * omc - z * sinAngle;
-  rotMatrix[5] = y * y * omc + cosAngle;
-  rotMatrix[6] = y * z * omc + x * sinAngle;
-  rotMatrix[7] = 0.0f;
-
-  rotMatrix[8] = x * z * omc + y * sinAngle;
-  rotMatrix[9] = y * z * omc - x * sinAngle;
-  rotMatrix[10] = z * z * omc + cosAngle;
-  rotMatrix[11] = 0.0f;
-
-  rotMatrix[12] = 0.0f;
-  rotMatrix[13] = 0.0f;
-  rotMatrix[14] = 0.0f;
-  rotMatrix[15] = 1.0f;
-  glMultMatrixf(rotMatrix);
-}
-
-void ScaleMatrix(float x, float y, float z) {
-  GLfloat scaleMatrix[16]{};
-  scaleMatrix[0] = x;
-  scaleMatrix[5] = y;
-  scaleMatrix[10] = z;
-  scaleMatrix[15] = 1.0f;
-  glMultMatrixf(scaleMatrix);
-}
-
-void OnKeyBoardPress(unsigned char key, int x, int y) {
-  std::cout << key << std::endl;
-
-  switch (key) {
-  case 'r':
-    currentPos[0] = 0;
-    currentPos[1] = 0;
-    currentPos[2] = 0;
-    currentRotate[0] = 0;
-    currentRotate[1] = 0;
-    currentRotate[2] = 0;
-    break;
-  case 'd':
-    currentPos[0] += 1;
-    break;
-  case 'a':
-    currentPos[0] -= 1;
-    break;
-  case 'j':
-    currentPos[1] += 1;
-    break;
-  case 'l':
-    currentPos[1] -= 1;
-    break;
-  case 'i':
-    currentPos[2] += 1;
-    break;
-  case 'p':
-    currentPos[2] -= 1;
-    break;
-  case 'x':
-    currentRotate[0] += 1;
-    break;
-  case 'y':
-    currentRotate[1] += 1;
-    break;
-  case 'z':
-    currentRotate[2] += 1;
-    break;
-  case '1':
-    currentScale[0] += 0.1;
-    break;
-  case '2':
-    currentScale[1] += 0.1;
-    break;
-  case '3':
-    currentScale[2] += 0.1;
-    break;
-  case '4':
-    currentScale[0] -= 0.1;
-    break;
-  case '5':
-    currentScale[1] -= 0.1;
-    break;
-  case '6':
-    currentScale[2] -= 0.1;
-    break;
-  }
-  glutPostRedisplay();
-}
-void MousePress(int button, int state, int x, int y) {
-  if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-    if (x < windowSize[0] / 2) {
-
-      if (mousepoint01Status == false) {
-        mouseViewport1WorldPos1[0] = (2 * ((float)x / 400) - 1) * (10);
-        mouseViewport1WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport1WorldPos1[2] = 0;
-        mousepoint01Status = true;
-      } else {
-        mouseViewport1WorldPos2[0] = (2 * ((float)x / 400) - 1) * (10);
-        mouseViewport1WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport1WorldPos2[2] = 0;
-        mousepoint01Status = false;
-      }
+    if (format) {
+      glTexImage2D(GL_TEXTURE_2D, 0, format, width4, height4, 0, format,
+                   GL_UNSIGNED_BYTE, image4);
     } else {
-
-      if (mousepoint02Status == false) {
-        mouseViewport2WorldPos1[0] =
-            (2 * ((float)((x - 400)) / 400) - 1) * (10);
-        mouseViewport2WorldPos1[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport2WorldPos1[2] = 0;
-        mousepoint02Status = true;
-      } else {
-        mouseViewport2WorldPos2[0] =
-            (2 * ((float)((x - 400)) / 400) - 1) * (10);
-        mouseViewport2WorldPos2[1] = (-2 * ((float)y / 800) + 1) * (10);
-        mouseViewport2WorldPos2[2] = 0;
-        mousepoint02Status = false;
-      }
+      std::cout << "Unsupported image format\n";
     }
-    // gluInvertMatrix();
-    glutPostRedisplay();
+
+    stbi_image_free(image4);
   }
+}
+
+// This function does any needed initialization on the rendering
+// context.
+void SetupRC() {
+  GLbyte *pBytes;
+  GLint nWidth, nHeight, nComponents;
+  GLenum format;
+
+  // Black background
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+            GL_MODULATE); // 設定openGL材質紋理的參數和材質的組合模式
+  glGenTextures(
+      4, textures); // 註冊一個大小為4的陣列讓openGL儲存材質，名稱為textures
+
+  LoadTexture(RESOURCE_DIR "//floor.jpg", 0);
+  LoadTexture(RESOURCE_DIR "/Block4.jpg", 1);
+  LoadTexture(RESOURCE_DIR "/Block5.jpg", 2);
+  LoadTexture(RESOURCE_DIR "/Block6.jpg", 3);
+
+  // 下面要設定剩下的三種材質
+  // ...
+}
+
+void ChangeSize(int w, int h) {
+  // Calculate new clipping volume
+  GLfloat windowWidth = 100.f;
+  GLfloat windowHeight = 100.f;
+
+  // Set the viewport to be the entire window
+  glViewport(0, 0, w, h);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+
+  // Set the clipping volume
+  glOrtho(-100.0f, windowWidth, -100.0f, windowHeight, -200.0f, 200.0f);
+
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  glLightfv(GL_LIGHT0, GL_POSITION, vLightPos);
+
+  glRotatef(30.0f, 1.0f, 0.0f, 0.0f);
+  glRotatef(330.0f, 0.0f, 1.0f, 0.0f);
+}
+
+int main(int argc, char *argv[]) {
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+  glutInitWindowSize(800, 600);
+  glutCreateWindow("Textures");
+  SetupRC();
+  glutReshapeFunc(ChangeSize);
+  glutDisplayFunc(RenderScene);
+  glutKeyboardFunc(MyKeyboard);
+
+  glutMainLoop();
+  glDeleteTextures(4, textures);
+  return 0;
 }
