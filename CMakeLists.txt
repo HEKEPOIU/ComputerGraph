@@ -3,14 +3,17 @@ project(ComputerGraph)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(THIRDPARTY ${CMAKE_SOURCE_DIR}/thirdparty)
 
 # this two line don't work new.
-set(INCLUDE_FILE)
+set(INCLUDE_FILE
+    ${THIRDPARTY}/stbImage/stb_image.h
+)
 set(SRC_FILES)
 add_subdirectory(thirdparty/freeglut)
 
 # you need pre-install OpenGL, GLU, please google
-add_executable(${PROJECT_NAME} ${SRC_DIR}/triangle.cpp)
+add_executable(${PROJECT_NAME} ${SRC_DIR}/triangle.cpp ${INCLUDE_FILE})
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL ${THIRDPARTY}/stbImage)

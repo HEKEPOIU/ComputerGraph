@@ -1,3 +1,6 @@
 .cache
 build
 .cmake
+/record
+*.zip
+*.mp4
