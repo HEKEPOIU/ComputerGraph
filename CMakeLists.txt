@@ -15,7 +15,6 @@ set(SRC_FILES
     ${THIRDPARTY}/gltools/src/GLShaderManager.cpp
     ${THIRDPARTY}/gltools/src/GLTools.cpp
     ${THIRDPARTY}/gltools/src/GLTriangleBatch.cpp
-    ${THIRDPARTY}/gltools/src/math3d.cpp
 )
 add_subdirectory(thirdparty/freeglut)
 
