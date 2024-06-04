@@ -1,7 +1,133 @@
-#include "GLTools.h"
 #include "freeglut_std.h"
-#include "math3d.h"
+#include <math.h>
 #define PI 3.14159265359f
+
+typedef float M3DVector2f[2];  // 3D points = 3D Vectors, but we need a
+typedef double M3DVector2d[2]; // 2D representations sometimes... (x,y) order
+
+typedef float M3DVector3f[3];  // Vector of three floats (x, y, z)
+typedef double M3DVector3d[3]; // Vector of three doubles (x, y, z)
+
+typedef float M3DVector4f[4]; // Lesser used... Do we really need these?
+typedef double
+    M3DVector4d[4]; // Yes, occasionaly we do need a trailing w component
+
+// 3x3 matrix - column major. X vector is 0, 1, 2, etc.
+//		0	3	6
+//		1	4	7
+//		2	5	8
+typedef float
+    M3DMatrix33f[9]; // A 3 x 3 matrix, column major (floats) - OpenGL Style
+typedef double
+    M3DMatrix33d[9]; // A 3 x 3 matrix, column major (doubles) - OpenGL Style
+
+// 4x4 matrix - column major. X vector is 0, 1, 2, etc.
+//	0	4	8	12
+//	1	5	9	13
+//	2	6	10	14
+//	3	7	11	15
+typedef float
+    M3DMatrix44f[16]; // A 4 X 4 matrix, column major (floats) - OpenGL style
+typedef double
+    M3DMatrix44d[16]; // A 4 x 4 matrix, column major (doubles) - OpenGL style
+
+// Transformation matrix to project shadow
+inline void m3dScaleVector3(M3DVector3f v, const float scale) {
+  v[0] *= scale;
+  v[1] *= scale;
+  v[2] *= scale;
+}
+inline void m3dCrossProduct3(M3DVector3f result, const M3DVector3f u,
+                             const M3DVector3f v) {
+  result[0] = u[1] * v[2] - v[1] * u[2];
+  result[1] = -u[0] * v[2] + v[0] * u[2];
+  result[2] = u[0] * v[1] - v[0] * u[1];
+}
+inline float m3dGetVectorLengthSquared3(const M3DVector3f u) {
+  return (u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]);
+}
+inline float m3dGetVectorLength3(const M3DVector3f u) {
+  return sqrtf(m3dGetVectorLengthSquared3(u));
+}
+inline void m3dNormalizeVector3(M3DVector3f u) {
+  m3dScaleVector3(u, 1.0f / m3dGetVectorLength3(u));
+}
+
+void m3dGetPlaneEquation(M3DVector4f planeEq, const M3DVector3f p1,
+                         const M3DVector3f p2, const M3DVector3f p3) {
+  // Get two vectors... do the cross product
+  M3DVector3f v1, v2;
+
+  // V1 = p3 - p1
+  v1[0] = p3[0] - p1[0];
+  v1[1] = p3[1] - p1[1];
+  v1[2] = p3[2] - p1[2];
+
+  // V2 = P2 - p1
+  v2[0] = p2[0] - p1[0];
+  v2[1] = p2[1] - p1[1];
+  v2[2] = p2[2] - p1[2];
+
+  // Unit normal to plane - Not sure which is the best way here
+  m3dCrossProduct3(planeEq, v1, v2);
+  m3dNormalizeVector3(planeEq);
+
+  // Back substitute to get D
+  planeEq[3] = -(planeEq[0] * p3[0] + planeEq[1] * p3[1] + planeEq[2] * p3[2]);
+}
+void m3dMakePlanarShadowMatrix(M3DMatrix44f proj, const M3DVector4f planeEq,
+                               const M3DVector3f vLightPos) {
+  // These just make the code below easier to read. They will be
+  // removed by the optimizer.
+  float a = planeEq[0];
+  float b = planeEq[1];
+  float c = planeEq[2];
+  float d = planeEq[3];
+
+  float dx = -vLightPos[0];
+  float dy = -vLightPos[1];
+  float dz = -vLightPos[2];
+
+  // Now build the projection matrix
+  proj[0] = b * dy + c * dz;
+  proj[1] = -a * dy;
+  proj[2] = -a * dz;
+  proj[3] = 0.0;
+
+  proj[4] = -b * dx;
+  proj[5] = a * dx + c * dz;
+  proj[6] = -b * dz;
+  proj[7] = 0.0;
+
+  proj[8] = -c * dx;
+  proj[9] = -c * dy;
+  proj[10] = a * dx + b * dy;
+  proj[11] = 0.0;
+
+  proj[12] = -d * dx;
+  proj[13] = -d * dy;
+  proj[14] = -d * dz;
+  proj[15] = a * dx + b * dy + c * dz;
+  // Shadow matrix ready
+}
+void m3dFindNormal(M3DVector3f result, const M3DVector3f point1,
+                   const M3DVector3f point2, const M3DVector3f point3) {
+  M3DVector3f v1, v2; // Temporary vectors
+
+  // Calculate two vectors from the three points. Assumes counter clockwise
+  // winding!
+  v1[0] = point1[0] - point2[0];
+  v1[1] = point1[1] - point2[1];
+  v1[2] = point1[2] - point2[2];
+
+  v2[0] = point2[0] - point3[0];
+  v2[1] = point2[1] - point3[1];
+  v2[2] = point2[2] - point3[2];
+
+  // Take the cross product of the two vectors to get
+  // the normal vector.
+  m3dCrossProduct3(result, v1, v2);
+}
 
 // Rotation amounts
 static GLfloat xRot = 0.0f;
