@@ -1263,7 +1263,6 @@ void DrawInhabitants(GLint nShadow) {
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
   } else
     glColor4f(0.00f, 0.00f, 0.00f, .6f); // Shadow color
-  glBindTexture(GL_TEXTURE_2D, textureObjects[SPHERE_TEXTURE]);
 
   // Draw the randomly located spheres
   for (i = 0; i < NUM_SPHERES; i++) {
