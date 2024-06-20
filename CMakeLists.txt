@@ -1,27 +1,32 @@
 cmake_minimum_required(VERSION 3.16)
 project(ComputerGraph)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(THIRDPARTY ${CMAKE_SOURCE_DIR}/thirdparty)
+add_subdirectory(thirdparty/freeglut)
 
 # this two line don't work new.
 set(INCLUDE_FILES
-    ${THIRDPARTY}/stbImage/stb_image.h
+    ${INCLUDE_DIR}/OBJLoader.hpp
+    ${INCLUDE_DIR}/DrawableObject.hpp
+    ${INCLUDE_DIR}/Transform.hpp
 )
 set(SRC_FILES
-    ${THIRDPARTY}/gltools/src/GLBatch.cpp
-    ${THIRDPARTY}/gltools/src/glew.c
-    ${THIRDPARTY}/gltools/src/GLShaderManager.cpp
-    ${THIRDPARTY}/gltools/src/GLTools.cpp
-    ${THIRDPARTY}/gltools/src/GLTriangleBatch.cpp
-    ${THIRDPARTY}/gltools/src/math3d.cpp
+    ${SRC_DIR}/DrawableObject.cpp
+    ${SRC_DIR}/Transform.cpp
 )
-add_subdirectory(thirdparty/freeglut)
 
-# you need pre-install OpenGL, GLU, please google
-add_executable(${PROJECT_NAME} ${SRC_DIR}/shadow.cpp ${INCLUDE_FILES} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OPENGL_glu_LIBRARY})
+add_executable(${PROJECT_NAME}
+    ${SRC_DIR}/main.cpp
+    ${INCLUDE_FILES}
+    ${SRC_FILES}
+)
+
+target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL ${THIRDPARTY}/stbImage ${THIRDPARTY}/gltools/include)
-target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/texture")
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/TestFile")
