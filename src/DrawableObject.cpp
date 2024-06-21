@@ -22,11 +22,11 @@ void DrawableObject::draw(DrawType mode) {
   for (int i = 0; i < _faces.size(); i++) {
 
     glBegin(gl_mode);
-    glColor3f(_faceColor[i][0], _faceColor[i][1], _faceColor[i][2]);
+    glColor3f(_faceColor[i].x, _faceColor[i].y, _faceColor[i].z);
 
     for (int k = 0; k < _faces[i].size() + loop_back; k++) {
       int j = k % _faces[i].size();
-      glVertex3fv(&_vertex[_faces[i][j] - 1][0]);
+      glVertex3fv(&_vertex[_faces[i][j] - 1].x);
     }
     glEnd();
   }
@@ -36,31 +36,31 @@ void DrawableObject::draw(DrawType mode) {
 }
 
 std::array<float, 6> DrawableObject::get_bbox() {
-  float min_x{_vertex[0][0]};
-  float max_x{_vertex[0][0]};
-  float min_y{_vertex[0][1]};
-  float max_y{_vertex[0][1]};
-  float min_z{_vertex[0][2]};
-  float max_z{_vertex[0][2]};
+  float min_x{_vertex[0].x};
+  float max_x{_vertex[0].x};
+  float min_y{_vertex[0].y};
+  float max_y{_vertex[0].y};
+  float min_z{_vertex[0].z};
+  float max_z{_vertex[0].z};
 
   for (auto &vertex : _vertex) {
-    if (vertex[0] < min_x) {
-      min_x = vertex[0];
+    if (vertex.x < min_x) {
+      min_x = vertex.x;
     }
-    if (vertex[0] > max_x) {
-      max_x = vertex[0];
+    if (vertex.x > max_x) {
+      max_x = vertex.x;
     }
-    if (vertex[1] < min_y) {
-      min_y = vertex[1];
+    if (vertex.y < min_y) {
+      min_y = vertex.y;
     }
-    if (vertex[1] > max_y) {
-      max_y = vertex[1];
+    if (vertex.y > max_y) {
+      max_y = vertex.y;
     }
-    if (vertex[2] < min_z) {
-      min_z = vertex[2];
+    if (vertex.z < min_z) {
+      min_z = vertex.z;
     }
-    if (vertex[2] > max_z) {
-      max_z = vertex[2];
+    if (vertex.z > max_z) {
+      max_z = vertex.z;
     }
   }
 
@@ -68,7 +68,7 @@ std::array<float, 6> DrawableObject::get_bbox() {
 }
 
 void DrawableObject::set_transform_to_target(
-    const std::array<float, 3> &target_position,
+    const Vec3 &target_position,
     const std::array<int, 6> &view_space) {
   auto bbox = get_bbox();
 

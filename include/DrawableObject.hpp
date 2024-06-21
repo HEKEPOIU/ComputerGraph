@@ -16,7 +16,7 @@ public:
     FACES,
   };
 
-  DrawableObject(const std::vector<std::array<float, 3>> &vertex,
+  DrawableObject(const std::vector<Vec3> &vertex,
                  const std::vector<std::vector<int>> &face)
       : _vertex(vertex), _faces(face) {
     _faceColor.resize(face.size());
@@ -27,7 +27,7 @@ public:
 
   void draw(DrawType mode);
   int get_face_count() { return _faces.size(); }
-  void set_face_color(const std::vector<std::array<float, 3>> &faceColor) {
+  void set_face_color(const std::vector<Vec3> &faceColor) {
     _faceColor = faceColor;
   }
 
@@ -35,7 +35,7 @@ public:
 
   // this function will adject the transform to the target postion (include
   // position, rotation, scale)
-  void set_transform_to_target(const std::array<float, 3> &target_position,
+  void set_transform_to_target(const Vec3 &target_position,
                                const std::array<int, 6> &view_space);
 
   std::array<float, 6> get_bbox();
@@ -43,11 +43,11 @@ public:
   std::shared_ptr<Transform> &get_transform() { return _transform; }
 
 private:
-  std::vector<std::array<float, 3>> _vertex;
+  std::vector<Vec3> _vertex;
 
   // the face have change more than 3 vertex.
   std::vector<std::vector<int>> _faces;
-  std::vector<std::array<float, 3>> _faceColor;
+  std::vector<Vec3> _faceColor;
 
   std::shared_ptr<Transform> _transform = std::make_shared<Transform>();
   float properScale{1.0f};

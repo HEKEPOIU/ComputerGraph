@@ -4,6 +4,7 @@
 #include <array>
 #include <freeglut.h>
 #include <freeglut_std.h>
+#include "CGMath.hpp"
 
 
 #define M_PI 3.14159265358979323846
@@ -14,44 +15,37 @@ public:
   enum class RotationType { EULER, ANYAXIS };
 
   Transform() { reset_transform(); };
-  void set_location(const std::array<float, 3> &location);
-  void set_rotation_by_euler(const std::array<float, 3> &rotation);
+  void set_location(const Vec3 &location);
+  void set_rotation_by_euler(const Vec3 &rotation);
 
   // note this function will break the ```_rotation``` variable, because I don't
   // have know how to convert rotation matrix to euler.
-  void set_rotation_by_axis(float angle, const std::array<float, 3> &axis);
-  void set_scale(const std::array<float, 3> &scale);
-  const std::array<float, 3> &get_location() { return _location; };
-  const std::array<float, 3> &get_rotation() { return _rotation; };
-  const std::array<float, 3> &get_scale() { return _scale; };
+  void set_rotation_by_axis(float angle, const Vec3 &axis);
+  void set_scale(const Vec3 &scale);
+  const Vec3 &get_location() { return _location; };
+  const Vec3 &get_rotation() { return _rotation; };
+  const Vec3 &get_scale() { return _scale; };
 
-  void modify_location(const std::array<float, 3> &axis) {
-    std::array<float, 3> new_location = get_location();
-    new_location[0] += axis[0];
-    new_location[1] += axis[1];
-    new_location[2] += axis[2];
+  void modify_location(const Vec3 &pos) {
+    Vec3 new_location = get_location();
+    new_location = new_location + pos;
     set_location(new_location);
   }
 
-  void modify_rotation_by_axis(float angle, const std::array<float, 3> &axis) {
+  void modify_rotation_by_axis(float angle, const Vec3 &axis) {
     float new_angle = _current_rotation_angle;
     new_angle += angle;
     set_rotation_by_axis(new_angle, axis);
   }
-  void modify_rotation(const std::array<float, 3> &axis) {
-    std::array<float, 3> new_rotation = get_rotation();
-    new_rotation[0] += axis[0];
-    new_rotation[1] += axis[1];
-    new_rotation[2] += axis[2];
-
+  void modify_rotation(const Vec3 &axis) {
+    Vec3 new_rotation = get_rotation();
+    new_rotation = new_rotation + axis;
     set_rotation_by_euler(new_rotation);
   }
 
-  void modify_scale(const std::array<float, 3> &axis) {
-    std::array<float, 3> new_scale = get_scale();
-    new_scale[0] += axis[0];
-    new_scale[1] += axis[1];
-    new_scale[2] += axis[2];
+  void modify_scale(const Vec3 &scale) {
+    Vec3 new_scale = get_scale();
+    new_scale = new_scale + scale;
     set_scale(new_scale);
   }
 
@@ -77,11 +71,11 @@ private:
   std::array<GLfloat, 16> get_scale_matrix(float x, float y, float z);
   std::array<GLfloat, 16> get_translate_matrix(GLfloat x, GLfloat y, GLfloat z);
 
-  std::array<float, 3> _location{0, 0, 0};
-  std::array<float, 3> _rotation{0, 0, 0};
-  std::array<float, 3> _current_rotation_axis{0, 0, 1};
+  Vec3 _location{0, 0, 0};
+  Vec3 _rotation{0, 0, 0};
+  Vec3 _current_rotation_axis{0, 0, 1};
   float _current_rotation_angle = 0;
-  std::array<float, 3> _scale{1.0, 1.0, 1.0};
+  Vec3 _scale{1.0, 1.0, 1.0};
 };
 
 #endif
