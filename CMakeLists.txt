@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(THIRDPARTY ${CMAKE_SOURCE_DIR}/thirdparty)
 add_subdirectory(thirdparty/freeglut)
 
 # this two line don't work new.
@@ -34,4 +35,4 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
     )
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/TestFile")
+target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Resource")

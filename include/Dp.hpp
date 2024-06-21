@@ -1,11 +1,11 @@
 #ifndef DP_HPP
 #define DP_HPP
 
-#include <GL/gl.h>
+#include <freeglut.h>
+#include <freeglut_std.h>
 #include <cmath>
 #include <cstring>
 
-namespace Dp{
     
 typedef float M3DVector2f[2];  // 3D points = 3D Vectors, but we need a
 typedef double M3DVector2d[2]; // 2D representations sometimes... (x,y) order
@@ -920,5 +920,4 @@ typedef struct {
 } TGAHEADER;
 #pragma pack(pop) // 關閉緊湊字節對齊
 
-}
 #endif
