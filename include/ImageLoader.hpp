@@ -1,11 +1,14 @@
 #ifndef IMAGELOADER_HPP
 #define IMAGELOADER_HPP
 
+#include <iostream>
 #include <memory>
-#include <stdexcept>
+#include <ostream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+
+// Simple Wrapper for stb_image, If Failed to load Image, data will be null.
 class ImageLoader {
 private:
   struct StbiImageDeleter {
@@ -22,7 +25,7 @@ public:
         stbi_load(filename, &width, &height, &channels, 0), StbiImageDeleter());
 
     if (!data) {
-      throw std::runtime_error(std::string("Failed to load image: ") + filename);
+      std::cerr << "Failed to load image: " << filename << std::endl;
     }
   }
 };
