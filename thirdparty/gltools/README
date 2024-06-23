@@ -1,5 +1,0 @@
-To build:
-
-	$ autoreconf -if
-	$ ./configure
-	$ make
