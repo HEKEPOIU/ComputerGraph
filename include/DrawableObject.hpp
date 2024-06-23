@@ -3,6 +3,8 @@
 
 #include <array>
 
+#include "CGMath.hpp"
+#include "Texture.hpp"
 #include "Transform.hpp"
 #include <memory>
 #include <vector>
@@ -16,20 +18,18 @@ public:
     FACES,
   };
 
-  DrawableObject(const std::vector<Vec3> &vertex,
-                 const std::vector<std::vector<int>> &face)
-      : _vertex(vertex), _faces(face) {
-    _faceColor.resize(face.size());
-    for (int i = 0; i < _faceColor.size(); i++) {
-      _faceColor[i] = {0.5f, 0.5f, 0.5f};
-    }
-  }
+  DrawableObject(const std::vector<Vec3> &vertices,
+                 const std::vector<Vec2> &tex_coords,
+                 const std::vector<Vec3> &normals,
+                 const std::vector<std::vector<int>> &vertex_indices,
+                 const std::vector<std::vector<int>> &tex_coord_indices,
+                 const std::vector<std::vector<int>> &normal_indices)
+      : _vertex(vertices), _tex_coords(tex_coords), _normals(normals),
+        _vertex_indices(vertex_indices), _tex_coord_indices(tex_coord_indices),
+        _normal_indices(normal_indices) {}
 
   void draw(DrawType mode);
-  int get_face_count() { return _faces.size(); }
-  void set_face_color(const std::vector<Vec3> &faceColor) {
-    _faceColor = faceColor;
-  }
+  int get_face_count() { return _vertex_indices.size(); }
 
   float get_proper_scale() { return properScale; }
 
@@ -38,16 +38,20 @@ public:
   void set_transform_to_target(const Vec3 &target_position,
                                const std::array<int, 6> &view_space);
 
-  std::array<float, 6> get_bbox();
+  std::array<double, 6> get_bbox();
 
   std::shared_ptr<Transform> &get_transform() { return _transform; }
+  void SetTexture(const std::shared_ptr<Texture> tex);
 
 private:
   std::vector<Vec3> _vertex;
-
+  std::vector<Vec2> _tex_coords;
+  std::vector<Vec3> _normals;
   // the face have change more than 3 vertex.
-  std::vector<std::vector<int>> _faces;
-  std::vector<Vec3> _faceColor;
+  std::vector<std::vector<int>> _vertex_indices;
+  std::vector<std::vector<int>> _tex_coord_indices;
+  std::vector<std::vector<int>> _normal_indices;
+  std::shared_ptr<Texture> _texture;
 
   std::shared_ptr<Transform> _transform = std::make_shared<Transform>();
   float properScale{1.0f};

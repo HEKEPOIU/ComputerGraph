@@ -1,12 +1,11 @@
 #ifndef DP_HPP
 #define DP_HPP
 
-#include <freeglut.h>
-#include <freeglut_std.h>
 #include <cmath>
 #include <cstring>
+#include <freeglut.h>
+#include <freeglut_std.h>
 
-    
 typedef float M3DVector2f[2];  // 3D points = 3D Vectors, but we need a
 typedef double M3DVector2d[2]; // 2D representations sometimes... (x,y) order
 

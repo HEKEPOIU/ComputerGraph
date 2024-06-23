@@ -1,4 +1,5 @@
 #include "DrawableObject.hpp"
+#include "Texture.hpp"
 #include <algorithm>
 #include <array>
 #include <freeglut.h>
@@ -14,34 +15,34 @@ void DrawableObject::draw(DrawType mode) {
   } else if (mode == DrawType::POINTS) {
     gl_mode = GL_POINTS;
   } else {
-    gl_mode = _faces[0].size() == 3 ? GL_TRIANGLES : GL_POLYGON;
+    gl_mode = _vertex_indices[0].size() == 3 ? GL_TRIANGLES : GL_POLYGON;
   }
 
+  if (_texture) {
+    _texture->ApplyTexture();
+  }
   _transform->Apply_transform();
-  glPointSize(5.0f);
-  for (int i = 0; i < _faces.size(); i++) {
-
+  for (int i = 0; i < _vertex_indices.size(); i++) {
     glBegin(gl_mode);
-    glColor3f(_faceColor[i].x, _faceColor[i].y, _faceColor[i].z);
 
-    for (int k = 0; k < _faces[i].size() + loop_back; k++) {
-      int j = k % _faces[i].size();
-      glVertex3fv(&_vertex[_faces[i][j] - 1].x);
+    for (int k = 0; k < _vertex_indices[i].size() + loop_back; k++) {
+      int j = k % _vertex_indices[i].size();
+      glTexCoord2dv(&_tex_coords[_tex_coord_indices[i][j]].x);
+      glNormal3dv(&_normals[_normal_indices[i][j]].x);
+      glVertex3dv(&_vertex[_vertex_indices[i][j]].x);
     }
     glEnd();
   }
-  glPointSize(1.0f);
-
   _transform->reverse_transform();
 }
 
-std::array<float, 6> DrawableObject::get_bbox() {
-  float min_x{_vertex[0].x};
-  float max_x{_vertex[0].x};
-  float min_y{_vertex[0].y};
-  float max_y{_vertex[0].y};
-  float min_z{_vertex[0].z};
-  float max_z{_vertex[0].z};
+std::array<double, 6> DrawableObject::get_bbox() {
+  double min_x{_vertex[0].x};
+  double max_x{_vertex[0].x};
+  double min_y{_vertex[0].y};
+  double max_y{_vertex[0].y};
+  double min_z{_vertex[0].z};
+  double max_z{_vertex[0].z};
 
   for (auto &vertex : _vertex) {
     if (vertex.x < min_x) {
@@ -68,8 +69,7 @@ std::array<float, 6> DrawableObject::get_bbox() {
 }
 
 void DrawableObject::set_transform_to_target(
-    const Vec3 &target_position,
-    const std::array<int, 6> &view_space) {
+    const Vec3 &target_position, const std::array<int, 6> &view_space) {
   auto bbox = get_bbox();
 
   std::array<int, 3> view_space_size{view_space[1] - view_space[0],
@@ -87,4 +87,8 @@ void DrawableObject::set_transform_to_target(
   _transform->modify_location({-((bbox[1] + bbox[0]) * properScale / 2),
                                -((bbox[3] + bbox[2]) * properScale / 2),
                                -((bbox[5] + bbox[4]) * properScale / 2)});
+}
+
+void DrawableObject::SetTexture(const std::shared_ptr<Texture> tex) {
+  _texture = tex;
 }

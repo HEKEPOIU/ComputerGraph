@@ -1,8 +1,8 @@
 #include "Transform.hpp"
+#include <GL/gl.h>
 #include <cmath>
 #include <freeglut.h>
 #include <freeglut_std.h>
-
 
 std::array<GLfloat, 16> Transform::get_rotate_matrix(float angle, float x,
                                                      float y, float z) {
@@ -63,16 +63,13 @@ std::array<GLfloat, 16> Transform::get_translate_matrix(GLfloat x, GLfloat y,
   return location_matrix;
 }
 
-void Transform::set_location(const Vec3 &location) {
-  _location = location;
-}
+void Transform::set_location(const Vec3 &location) { _location = location; }
 
 void Transform::set_rotation_by_euler(const Vec3 &rotation) {
   _rotation = rotation;
 }
 
-void Transform::set_rotation_by_axis(float angle,
-                                     const Vec3 &axis) {
+void Transform::set_rotation_by_axis(float angle, const Vec3 &axis) {
   _current_rotation_angle = angle;
   _current_rotation_axis = axis;
 }
@@ -81,35 +78,12 @@ void Transform::set_scale(const Vec3 &scale) { _scale = scale; }
 
 void Transform::Apply_transform() {
 
-  glMultMatrixf(
-      get_translate_matrix(_location.x, _location.y, _location.z).data());
-  if (_rotation_type == RotationType::EULER) {
-    glMultMatrixf(get_rotate_matrix(_rotation.x, 1, 0, 0).data());
-    glMultMatrixf(get_rotate_matrix(_rotation.y, 0, 1, 0).data());
-    glMultMatrixf(get_rotate_matrix(_rotation.z, 0, 0, 1).data());
-
-  } else if (_rotation_type == RotationType::ANYAXIS) {
-    glMultMatrixf(
-        get_rotate_matrix(_current_rotation_angle, _current_rotation_axis.x,
-                          _current_rotation_axis.y, _current_rotation_axis.z)
-            .data());
-  }
-  glMultMatrixf(get_scale_matrix(_scale.x, _scale.y, _scale.z).data());
+  glTranslatef(_location.x, _location.y, _location.z);
+  glRotatef(_rotation.x, 1, 0, 0);
+  glRotatef(_rotation.y, 0, 1, 0);
+  glRotatef(_rotation.z, 0, 0, 1);
+  glScalef(_scale.x, _scale.y, _scale.z);
 }
-
 void Transform::reverse_transform() {
-  glMultMatrixf(
-      get_translate_matrix(-_location.x, -_location.y, -_location.z).data());
-  if (_rotation_type == RotationType::EULER) {
-    glMultMatrixf(get_rotate_matrix(-_rotation.x, 1, 0, 0).data());
-    glMultMatrixf(get_rotate_matrix(-_rotation.y, 0, 1, 0).data());
-    glMultMatrixf(get_rotate_matrix(-_rotation.z, 0, 0, 1).data());
-
-  } else if (_rotation_type == RotationType::ANYAXIS) {
-    glMultMatrixf(
-        get_rotate_matrix(-_current_rotation_angle, _current_rotation_axis.x,
-                          _current_rotation_axis.y, _current_rotation_axis.z)
-            .data());
-  }
-  glMultMatrixf(get_scale_matrix(-_scale.x, -_scale.y, -_scale.z).data());
+  glScalef(1 / _scale.x, 1 / _scale.y, 1 / _scale.z);
 }

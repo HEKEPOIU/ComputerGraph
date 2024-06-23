@@ -15,10 +15,14 @@ set(INCLUDE_FILES
     ${INCLUDE_DIR}/DrawableObject.hpp
     ${INCLUDE_DIR}/Transform.hpp
     ${INCLUDE_DIR}/CGMath.hpp
+    ${INCLUDE_DIR}/Texture.hpp
+    ${INCLUDE_DIR}/Dp.hpp
+    ${INCLUDE_DIR}/ImageLoader.hpp
 )
 set(SRC_FILES
     ${SRC_DIR}/DrawableObject.cpp
     ${SRC_DIR}/Transform.cpp
+    ${SRC_DIR}/Texture.cpp
 )
 
 add_executable(${PROJECT_NAME}
@@ -29,10 +33,10 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY} ${OPENGL_glu_LIBRARY})
 target_link_libraries(${PROJECT_NAME} freeglut_static)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE 
-        ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL 
-        ${THIRDPARTY}/stbImage
-    )
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+    ${CMAKE_SOURCE_DIR}/thirdparty/freeglut/include/GL
+    ${THIRDPARTY}/stbImage
+)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Resource")

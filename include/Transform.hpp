@@ -1,11 +1,10 @@
 #ifndef TRANSFORM_HPP
 #define TRANSFORM_HPP
 
+#include "CGMath.hpp"
 #include <array>
 #include <freeglut.h>
 #include <freeglut_std.h>
-#include "CGMath.hpp"
-
 
 #define M_PI 3.14159265358979323846
 

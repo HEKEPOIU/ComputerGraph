@@ -1,20 +1,24 @@
+#include "CGMath.hpp"
+#include "Transform.hpp"
+#include <GL/gl.h>
+#include <iostream>
+#include <ostream>
+#define STB_IMAGE_IMPLEMENTATION
 #include "Dp.hpp"
 #include "DrawableObject.hpp"
-#include "ImageLoader.hpp"
+#include "OBJLoader.hpp"
+#include "Texture.hpp"
 /*** freeglut***/
 #include <freeglut.h>
 #include <freeglut_std.h>
-#include <iostream>
 #include <memory>
-#include <ostream>
-
-#define NUM_SPHERES 30
-GLFrame spheres[NUM_SPHERES];
+#include <string>
+#include <vector>
 GLFrame frameCamera;
 
 // Light and material Data
 GLfloat fLightPos[4] = {-100.0f, 100.0f, 50.0f, 1.0f}; // Point source
-GLfloat fNoLight[] = {0.0f, 0.0f, 0.0f, 0.0f};
+GLfloat fNoLight[] = {0.f, 0.f, 0.f, 0.f};
 GLfloat fLowLight[] = {0.25f, 0.25f, 0.25f, 1.0f};
 GLfloat fBrightLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -24,15 +28,23 @@ M3DVector3f vPoints[3] = {
 
 M3DMatrix44f mShadowMatrix;
 
-#define GROUND_TEXTURE 0
-#define TORUS_TEXTURE 1
-#define SPHERE_TEXTURE 2
-#define NUM_TEXTURES 3
-GLuint textureObjects[NUM_TEXTURES];
-
-const char *szTextureFiles[] = {RESOURCE_DIR "/texture/grass.tga",
-                                RESOURCE_DIR "/texture/wood.tga",
-                                RESOURCE_DIR "/texture/orb.tga"};
+std::shared_ptr<Texture> groundTexture;
+#define TRUNKWOOD 0
+#define CITY 1
+#define UFO 2
+#define HORSE 3
+#define PENGUIN 4
+std::unique_ptr<OBJLoader> _objLoader = std::make_unique<OBJLoader>();
+std::vector<std::string> _modelPaths = {"trunk_wood", "city", "ufo", "horse",
+                                        "penguin"};
+Vec3 preMousePos = Vec3(0, 0);
+std::shared_ptr<DrawableObject> _skybox;
+std::vector<std::shared_ptr<DrawableObject>> _models;
+float horse_angle = 0;
+float horse_float_time = 0;
+float lastX = 3;
+float lastZ = 0.0f;
+float lastDirectionAngle = 0.0f;
 void SetupRC() {
 
   // Grayish background
@@ -69,50 +81,42 @@ void SetupRC() {
 
   // Set up texture maps, only need load once,
   glEnable(GL_TEXTURE_2D);
-  glGenTextures(NUM_TEXTURES, textureObjects);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-  for (int i = 0; i < NUM_TEXTURES; i++) {
-
-    glBindTexture(GL_TEXTURE_2D, textureObjects[i]);
-    GLenum eFormat;
-
-    auto imageData = std::make_unique<ImageLoader>(szTextureFiles[i]);
-    if(imageData->data == nullptr) return;
-    if (imageData->channels == 1) {
-      eFormat = GL_RED;
-    } else if (imageData->channels == 3) {
-      eFormat = GL_RGB;
-    } else if (imageData->channels == 4) {
-      eFormat = GL_RGBA;
-    } else {
-      std::cerr << "Unsupported image format!" << std::endl;
-      return;
-    }
-
-    gluBuild2DMipmaps(GL_TEXTURE_2D, imageData->channels, imageData->width,
-                      imageData->height, eFormat, GL_UNSIGNED_BYTE,
-                      imageData->data.get());
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  groundTexture = std::make_shared<Texture>(RESOURCE_DIR "/texture/rock.tga");
+  for (auto modelpath : _modelPaths) {
+    auto model = _objLoader->get_OBJ(RESOURCE_DIR "/" + modelpath + ".obj");
+    _models.push_back(model);
+    auto texture = std::make_shared<Texture>(RESOURCE_DIR "/texture/" +
+                                             modelpath + "_diff.tga");
+    model->SetTexture(texture);
   }
+  _models[TRUNKWOOD]->set_transform_to_target({0, 0, 0},
+                                              {-1, 1, -1, 1, -100, 100});
+  _models[TRUNKWOOD]->get_transform()->set_scale({3, 3, 3});
+  _models[TRUNKWOOD]->get_transform()->set_location({-.5, -0.5, -5});
+  _models[CITY]->set_transform_to_target({0, 0, 0},
+                                         {-15, 15, -15, 15, -500, 500});
+  _models[CITY]->get_transform()->set_location({0, -0.5, -20});
+  _models[UFO]->set_transform_to_target({0, 0, 0}, {-1, 1, -1, 1, -100, 100});
+  _models[UFO]->get_transform()->set_location({0, 5, -15});
+  _models[HORSE]->set_transform_to_target({0, 0, 0}, {-1, 1, -1, 1, -100, 100});
+  _skybox = _objLoader->get_OBJ(RESOURCE_DIR "/"
+                                             "skybox"
+                                             ".obj");
+  auto texture = std::make_shared<Texture>(RESOURCE_DIR "/texture/"
+                                                        "skybox"
+                                                        "_diff.tga");
+  _skybox->SetTexture(texture);
+  _skybox->get_transform()->set_scale({3, 3, 3});
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Do shutdown for the rendering context
-void ShutdownRC(void) {
-  // Delete the textures
-  glDeleteTextures(NUM_TEXTURES, textureObjects);
-}
 
 ///////////////////////////////////////////////////////////
 // Draw the ground as a series of triangle strips
 void DrawGround(void) {
-  GLfloat fExtent = 20.0f;
+  GLfloat fExtent = 100.0f;
   GLfloat fStep = 1.0f;
   GLfloat y = -0.4f;
   GLfloat iStrip, iRun;
@@ -120,7 +124,7 @@ void DrawGround(void) {
   GLfloat t = 0.0f;
   GLfloat texStep = 1.0f / (fExtent * .075f);
 
-  glBindTexture(GL_TEXTURE_2D, textureObjects[GROUND_TEXTURE]);
+  groundTexture->ApplyTexture();
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -159,6 +163,52 @@ void DrawInhabitants(GLint nShadow) {
 
   //   --------------------------
   //   Draw the Object below.
+  glPushMatrix();
+  { _models[TRUNKWOOD]->draw(DrawableObject::DrawType::FACES); }
+  glPopMatrix();
+
+  glPushMatrix();
+  float horseX = cos(horse_angle);
+  glScalef(1, horseX + 1, 1);
+  { _models[PENGUIN]->draw(DrawableObject::DrawType::FACES); }
+  glPopMatrix();
+
+  glPushMatrix();
+  { _models[CITY]->draw(DrawableObject::DrawType::FACES); }
+  glPopMatrix();
+  glPushMatrix();
+  {
+    float horseX = 3 * cos(horse_angle);
+    float horseZ = 3 * sin(horse_angle);
+    float horseY = 3 * cos(horse_float_time);
+    // 計算馬的朝向角度
+    float deltaX = horseX - lastX;
+    float deltaZ = horseZ - lastZ;
+    float directionAngle = atan2(deltaZ, deltaX) * 180 / M_PI; // 弧度轉度數
+    float forwardX = cos(horse_angle);
+    float forwardZ = sin(horse_angle);
+    float facingAngle = atan2(forwardZ, forwardX) * 180 / M_PI;
+
+    float smoothingFactor = 0.1f; // 平滑因子
+    if (fabs(directionAngle - lastDirectionAngle) < 180) {
+      directionAngle = lastDirectionAngle * (1.0f - smoothingFactor) +
+                       directionAngle * smoothingFactor;
+    }
+
+    lastX = horseX;
+    lastZ = horseZ;
+    lastDirectionAngle = directionAngle;
+    glTranslatef(0, horseY, 0);
+    _models[UFO]->draw(DrawableObject::DrawType::FACES);
+    glPushMatrix();
+    {
+      glTranslatef(horseX, horseY, horseZ);
+      glRotatef(facingAngle, 0, 1, 0);
+      _models[HORSE]->draw(DrawableObject::DrawType::FACES);
+    }
+    glPopMatrix();
+  }
+  glPopMatrix();
 }
 
 // Called to draw scene
@@ -169,6 +219,7 @@ void RenderScene(void) {
   glPushMatrix();
   frameCamera.ApplyCameraTransform();
 
+  _skybox->draw(DrawableObject::DrawType::FACES);
   // Position light before any other transformations
   glLightfv(GL_LIGHT0, GL_POSITION, fLightPos);
 
@@ -208,30 +259,25 @@ void RenderScene(void) {
 }
 
 // Respond to arrow keys by moving the camera frame of reference
-void SpecialKeys(int key, int x, int y) {
-  if (key == GLUT_KEY_UP)
+void SpecialKeys(unsigned char key, int x, int y) {
+  if (key == 'w')
     frameCamera.MoveForward(0.1f);
 
-  if (key == GLUT_KEY_DOWN)
+  if (key == 's')
     frameCamera.MoveForward(-0.1f);
 
-  if (key == GLUT_KEY_LEFT)
-    frameCamera.RotateLocalY(0.1f);
-
-  if (key == GLUT_KEY_RIGHT)
-    frameCamera.RotateLocalY(-0.1f);
-
   // Refresh the Window
-  glutPostRedisplay();
 }
 
 ///////////////////////////////////////////////////////////
 // Called by GLUT library when idle (window not being
 // resized or moved)
 void TimerFunction(int value) {
-  // Redraw the scene with new coordinates
-  glutPostRedisplay();
+  _models[TRUNKWOOD]->get_transform()->modify_rotation({0, 1.f, 0});
+  horse_angle += .025f;
+  horse_float_time += 0.05f;
   glutTimerFunc(3, TimerFunction, 1);
+  glutPostRedisplay();
 }
 
 void ChangeSize(int w, int h) {
@@ -251,10 +297,16 @@ void ChangeSize(int w, int h) {
   glLoadIdentity();
 
   // Set the clipping volume
-  gluPerspective(35.0f, fAspect, 1.0f, 50.0f);
+  gluPerspective(35.0f, fAspect, 1.0f, 1000.0f);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
+}
+void MouseFunc(int x, int y) {
+  Vec3 nowMousePos = {float(y), float(x), 0};
+  Vec3 delta = nowMousePos - preMousePos;
+  frameCamera.RotateLocal(0.01f, -delta.x, delta.y, delta.z);
+  preMousePos = {float(y), float(x), 0};
 }
 int main(int argc, char *argv[]) {
   glutInit(&argc, argv);
@@ -263,13 +315,13 @@ int main(int argc, char *argv[]) {
   glutCreateWindow("ComputerGraph Final Project");
   glutReshapeFunc(ChangeSize);
   glutDisplayFunc(RenderScene);
-  glutSpecialFunc(SpecialKeys);
+  glutKeyboardFunc(SpecialKeys);
+  glutPassiveMotionFunc(MouseFunc);
   SetupRC();
   glutTimerFunc(33, TimerFunction, 1);
 
+  frameCamera.SetOrigin(0, 2, 0);
   glutMainLoop();
-
-  ShutdownRC();
 
   return 0;
 }
