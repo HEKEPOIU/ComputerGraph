@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#define GL_MULTISAMPLE_ARB 0x809D
 GLFrame frameCamera;
 
 // Light and material Data
