@@ -14,10 +14,12 @@ OpenGl.
 ## What inside?
 
 Basic First Person Camera Control.
-    - W, S Move Front or Back.
-    - Mouse can rotate the view.
+- W, S Move Front or Back.
+- Mouse can rotate the view.
+
 Object with texture, and shadow.
-Some Cos Wave Rotation Object. 
+
+Some cos Wave Rotation Object. 
 
 
 ## How to Build
